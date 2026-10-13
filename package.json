@@ -1,0 +1,11 @@
+{
+  "name": "qiaoqiao-island",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:original": "node --test tests/adventure.test.mjs tests/assets.test.mjs tests/catch-game.test.mjs tests/catch-integration.test.mjs tests/catch-world.test.mjs tests/feedback.test.mjs tests/game.test.mjs tests/journey-game.test.mjs tests/journey-integration.test.mjs tests/journey-stone-world.test.mjs tests/journey-store.test.mjs tests/mail-world.test.mjs tests/map-integration.test.mjs tests/preview-action-responsiveness.test.mjs tests/preview-assets.test.mjs tests/preview-connected-forest.test.mjs tests/preview-controller.test.mjs tests/preview-engine.test.mjs tests/preview-experience-backup.test.mjs tests/preview-home-picnic-actions.test.mjs tests/preview-invitation-world.test.mjs tests/preview-isolation.test.mjs tests/preview-orchard-orders.test.mjs tests/preview-orchard-sequence.test.mjs tests/preview-original.test.mjs tests/preview-renderer-stages.test.mjs tests/preview-room-free-play-hints.test.mjs tests/preview-stage-migration.test.mjs tests/preview-stage-review.test.mjs tests/preview-v3-engine.test.mjs tests/room-world.test.mjs tests/stone-game.test.mjs tests/stone-integration.test.mjs tests/stone-world.test.mjs tests/world.test.mjs",
+    "test:challenge": "node --test tests/challenge-*.test.mjs"
+  }
+}

@@ -1,0 +1,8 @@
+.speed{margin-left:auto;white-space:nowrap;font-size:14px;font-weight:700}
+.hintbar{flex-direction:column;justify-content:center;gap:8px;min-height:106px}
+.totals{display:flex;gap:24px;align-items:center;font-size:23px;font-weight:700;font-variant-numeric:tabular-nums}
+.totals>span+span{border-left:1px solid #c5cbaa;padding-left:24px}
+.hintbar p{margin:0;font-size:14px;color:#627452}
+.hintbar[data-result="wrong"] p,.hintbar[data-result="miss"] p{color:#914f37}
+#world:focus{outline:none}
+@media(max-width:650px){.top{gap:8px}.top b{font-size:14px}.top>a{font-size:11px}.speed{font-size:11px}.top button{padding:6px 9px}.totals{gap:14px;font-size:20px}.totals>span+span{padding-left:14px}.hintbar p{font-size:12px}}

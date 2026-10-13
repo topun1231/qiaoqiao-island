@@ -1,0 +1,572 @@
+[
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 1,
+      "phase": "complete",
+      "paused": false,
+      "step": 4,
+      "index": 0,
+      "accepted": [
+        "F",
+        "J",
+        "F",
+        "J"
+      ],
+      "completed": [
+        "fruit-1",
+        "fruit-2",
+        "fruit-3",
+        "fruit-4"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "水果到齐啦，一篮好东西准备好啦",
+      "progress": 4,
+      "stage": "play",
+      "queue": [],
+      "sequence": "",
+      "counts": {
+        "F": 2,
+        "J": 2
+      },
+      "inventory": [],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 80,
+      "fruitStartedAt": 61.12,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 2,
+      "phase": "complete",
+      "paused": false,
+      "step": 3,
+      "index": 0,
+      "accepted": [
+        "D",
+        "D",
+        "K"
+      ],
+      "completed": [
+        "pear-1",
+        "pear-2",
+        "peach-1"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "水果到齐啦，一篮好东西准备好啦",
+      "progress": 3,
+      "stage": "play",
+      "queue": [],
+      "sequence": "",
+      "counts": {
+        "D": 2,
+        "K": 1
+      },
+      "inventory": [],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 60,
+      "fruitStartedAt": 41.12,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 3,
+      "phase": "complete",
+      "paused": false,
+      "step": 6,
+      "index": 6,
+      "accepted": [
+        "S",
+        "L",
+        "F",
+        "J",
+        "S",
+        "L"
+      ],
+      "completed": [
+        "stone-1",
+        "stone-2",
+        "stone-3",
+        "stone-4",
+        "stone-5",
+        "stone-6"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "到对岸啦！每一步都是你自己走过来的",
+      "progress": 6,
+      "stage": "play",
+      "queue": [],
+      "sequence": "SLFJSL",
+      "counts": {},
+      "inventory": [],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 120,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 4,
+      "phase": "complete",
+      "paused": false,
+      "step": 3,
+      "index": 3,
+      "accepted": [
+        "A",
+        "G",
+        "H"
+      ],
+      "completed": [
+        "stone-1",
+        "stone-2",
+        "stone-3"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "",
+      "route": "agh",
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "到对岸啦！每一步都是你自己走过来的",
+      "progress": 3,
+      "stage": "play",
+      "queue": [],
+      "sequence": "AGH",
+      "counts": {},
+      "inventory": [],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 60,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 5,
+      "phase": "complete",
+      "paused": false,
+      "step": 4,
+      "index": 0,
+      "accepted": [
+        "E",
+        "I",
+        "R",
+        "U"
+      ],
+      "completed": [
+        "junction-1",
+        "junction-2",
+        "junction-3",
+        "junction-4"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "四个线索都找对啦，朋友就在亮灯的小屋里",
+      "progress": 4,
+      "stage": "play",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 80,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 6,
+      "phase": "complete",
+      "paused": false,
+      "step": 2,
+      "index": 0,
+      "accepted": [
+        "T",
+        "F",
+        "Y",
+        "J"
+      ],
+      "completed": [
+        "T",
+        "Y"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "蜂蜜和果汁都取回来啦，留在野餐篮里",
+      "progress": 2,
+      "stage": "select",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [
+        "T",
+        "Y"
+      ],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 80,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 7,
+      "phase": "complete",
+      "paused": false,
+      "step": 2,
+      "index": 0,
+      "accepted": [
+        "Q",
+        "W",
+        "O",
+        "P"
+      ],
+      "completed": [
+        "Q",
+        "O"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {
+        "Q": "W",
+        "O": "P"
+      },
+      "buffer": "",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "两处都布置好啦！还可以拿起来换个摆法",
+      "progress": 2,
+      "stage": "pick",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 80,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 8,
+      "phase": "complete",
+      "paused": false,
+      "step": 2,
+      "index": 0,
+      "accepted": [
+        "V",
+        "M",
+        "B",
+        "N"
+      ],
+      "completed": [
+        "F",
+        "D",
+        "V",
+        "B"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {
+        "F": "M",
+        "D": "N",
+        "V": "M",
+        "B": "N"
+      },
+      "buffer": "",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "地上整理好啦，两处各有两件！还可以继续改摆",
+      "progress": 4,
+      "stage": "pick",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [],
+      "arrived": [],
+      "targetText": "",
+      "lockedPrefix": "",
+      "time": 80,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 9,
+      "phase": "complete",
+      "paused": false,
+      "step": 3,
+      "index": 0,
+      "accepted": [
+        "C",
+        "X",
+        "Z"
+      ],
+      "completed": [
+        "music",
+        "box",
+        "jazz"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "jazz",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "邀请卡都收好啦，每张都准备好送给朋友",
+      "progress": 3,
+      "stage": "write",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [],
+      "arrived": [],
+      "targetText": "jazz",
+      "lockedPrefix": "jaz",
+      "time": 60,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 10,
+      "phase": "complete",
+      "paused": false,
+      "step": 2,
+      "index": 0,
+      "accepted": [
+        "Backspace",
+        "Backspace",
+        "Z"
+      ],
+      "completed": [
+        "box",
+        "jazz"
+      ],
+      "selected": null,
+      "held": null,
+      "placements": {},
+      "buffer": "jazz",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "邀请卡都收好啦，每张都准备好送给朋友",
+      "progress": 2,
+      "stage": "write",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [],
+      "arrived": [],
+      "targetText": "jazz",
+      "lockedPrefix": "jaz",
+      "time": 40,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 11,
+      "phase": "complete",
+      "paused": false,
+      "step": 1,
+      "index": 0,
+      "accepted": [
+        "J",
+        "O",
+        "I",
+        "N",
+        "Space",
+        "U",
+        "S"
+      ],
+      "completed": [
+        "J"
+      ],
+      "selected": "J",
+      "held": null,
+      "placements": {},
+      "buffer": "join us",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "朋友已经坐好啦，一起享受野餐吧",
+      "progress": 1,
+      "stage": "delivery",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [],
+      "arrived": [
+        "J"
+      ],
+      "targetText": "join us",
+      "lockedPrefix": "",
+      "time": 20,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  },
+  {
+    "version": 1,
+    "state": {
+      "version": 1,
+      "level": 12,
+      "phase": "complete",
+      "paused": false,
+      "step": 3,
+      "index": 0,
+      "accepted": [
+        "C",
+        "C",
+        "O",
+        "M",
+        "E",
+        "Space",
+        "A",
+        "N",
+        "D",
+        "Space",
+        "P",
+        "L",
+        "A",
+        "Y",
+        "X",
+        "J",
+        "O",
+        "I",
+        "N",
+        "Space",
+        "U",
+        "S",
+        "Z",
+        "L",
+        "E",
+        "T",
+        "Space",
+        "U",
+        "S",
+        "Space",
+        "E",
+        "A",
+        "T"
+      ],
+      "completed": [
+        "C",
+        "X",
+        "Z"
+      ],
+      "selected": "Z",
+      "held": null,
+      "placements": {},
+      "buffer": "let us eat",
+      "route": null,
+      "action": null,
+      "wrongKey": null,
+      "wrongUntil": 0,
+      "message": "三位朋友都到场啦，大家一起开野餐！",
+      "progress": 3,
+      "stage": "delivery",
+      "queue": [],
+      "sequence": "",
+      "counts": {},
+      "inventory": [],
+      "arrived": [
+        "C",
+        "X",
+        "Z"
+      ],
+      "targetText": "let us eat",
+      "lockedPrefix": "",
+      "time": 120,
+      "fruitStartedAt": 0,
+      "solved": true
+    }
+  }
+]
