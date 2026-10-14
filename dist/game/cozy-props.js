@@ -78,6 +78,6 @@ export function createCozyProps(scene, camera) {
     mesh(new THREE.TorusGeometry(.76, .055, 6, 28, Math.PI), '#c49a62', [0, .65, -.13], [1, 1, 1], g);
     return g;
   }
-  function billboard() { for (const m of billboards) { m.quaternion.copy(camera.quaternion); if (m.parent !== root) { const q = new THREE.Quaternion(); m.parent.getWorldQuaternion(q); m.quaternion.premultiply(q.invert()); } } }
+  function billboard() { for (let i=billboards.length-1;i>=0;i--) { const m=billboards[i];if(!m.parent){billboards.splice(i,1);continue;}m.quaternion.copy(camera.quaternion); if (m.parent !== root) { const q = new THREE.Quaternion(); m.parent.getWorldQuaternion(q); m.quaternion.premultiply(q.invert()); } } }
   return { root, mat, mesh, ell, block, cylinder, label, setLabel, textMap, fruit, basket, billboard, textures, materials, drawings, geometries: [sphere, box] };
 }

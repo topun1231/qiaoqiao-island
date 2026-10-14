@@ -257,6 +257,8 @@ export function createPairingWorld(container) {
   table.scale.y=.80;
   for(const child of room.children)if(child.isGroup && child.position.x===3.29 && child.position.y===1.73) child.position.y=1.392;
   tableDestination.visible=false;objectHalo.visible=false;
+  const categoryMats=['#9fc78d','#e5ab72'].map((color,i)=>{const m=mesh(new THREE.BoxGeometry(3.7,.025,3.7),mat(color),[i?-2.75:2.5,.083,-.65],[1,1,1],room);m.visible=false;return m;});
+
   // Remove only the old movable proposal props and decorative basket. The new
   // basket is the actual labelled moveable item, never a duplicate decoration.
   for(const object of Object.values(world.objects))object.removeFromParent();
@@ -421,6 +423,8 @@ export function createPairingWorld(container) {
     const pose=samplePairingPose(state,action? actionContext : {root:settledRoot,yaw:settledYaw});
     lastAction=action?{signature,elapsed:action.elapsed,state:{...state,placements:{...state.placements},action:{...action}}}:null;
     lastPose=pose;
+    categoryMats.forEach(m=>m.visible=!!state.activityEdition);
+    room.getObjectByName('sage-woven-rug').visible=!state.activityEdition;
     const keys=itemKeys(state),zones=zoneKeys(state),held=state.held||((action?.type==='pick'&&pose.grip>.98)||action?.type==='place'?action?.item:null);
     for(const [key,obj]of Object.entries(objects)) {
       obj.visible=keys.includes(key);
@@ -456,8 +460,8 @@ export function createPairingWorld(container) {
         const count=keys.filter(item=>state.placements?.[item]===key&&item!==state.held).length;
         label.el.className=`pairing-world-label destination${state.held&&!action?' available':' quiet'}`;
         const zone=state.zones?.find(zone=>zone.key===key);
-        label.name.textContent=zone?.label||PAIRING_ZONES[key].label;
-        label.tagline.textContent=state.held?'↓ 放置':'小区域';label.count.textContent=state.solved||state.freePlay?`${count}件`:state.contentVersion===5&&level===8?`${count}件 / 最多3件`:`${count}/${zone?.capacity??(level===8?2:1)}`;
+        label.name.textContent=state.activityEdition?`${zone.label} · ${zone.rule}`:zone?.label||PAIRING_ZONES[key].label;
+        label.tagline.textContent=state.activityEdition?(key==='M'?'右边绿色区':'左边橙色区'):state.held?'↓ 放置':'小区域';label.count.textContent=state.solved||state.freePlay?`${count}件`:state.contentVersion===5&&level===8?`${count}件 / 最多3件`:`${count}/${zone?.capacity??(level===8?2:1)}`;
         project(label.el,PAIRING_ZONES[key].anchor,PAIRING_ZONES[key].center,true,key);
       }
     }
@@ -467,7 +471,7 @@ export function createPairingWorld(container) {
       const goals=state.items?.filter(item=>item.goalZone===zone)||[];
       for(let slot=0;slot<4;slot++) {
         const rest=restMeshes[index*4+slot],item=goals[slot];
-        rest.visible=!state.solved&&!state.freePlay&&slot<capacity&&!(state.contentVersion===5&&level===8);
+        rest.visible=!state.solved&&!state.freePlay&&slot<capacity&&!state.activityEdition&&!(state.contentVersion===5&&level===8);
         const siblings=goals.filter(other=>(['V','B'].includes(other.key))===(['V','B'].includes(item?.key)));
         rest.position.set(...pairingSlotPosition(zone,item?siblings.indexOf(item):slot,item?siblings.length:capacity,(state.contentVersion>=3||state.version>=3)?item?.key:''));rest.position.y+=.008;
         const filled=item?state.placements?.[item.key]===zone&&state.held!==item.key:slot<keys.filter(key=>state.placements?.[key]===zone&&key!==state.held).length;

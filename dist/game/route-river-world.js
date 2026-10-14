@@ -28,6 +28,7 @@ export function createRouteRiverWorld(host){
      const group=new THREE.Group();root.add(group);group.position.set(point[0],0,point[1]);
      cylinder('#8f9d92',[0,.06,0],path.radius,path.radius*.88,.55,group,8);
      const top=cylinder(props.mat('#d1d6bd').clone(),[0,.35,0],path.radius*.95,path.radius,.08,group,8);
+     if(i===0){const entrance=label(lane==='agh'?'按 A 走上面这条路':'按 H 走下面这条路',[0,1.6,0],3.3,.5,group);entrance.userData.routeEntry=true;}
      const sign=label(path.codes[i],[0,.9,0],1.2,.42,group);
      stones.set(lane+i,{group,top,sign,lane,index:i});
     });
@@ -45,12 +46,13 @@ export function createRouteRiverWorld(host){
   legs.forEach((leg,i)=>leg.rotation.x=state.action?Math.sin(state.action.elapsed*12)*(i%2?1:-1)*.15:0);
   for(const entry of stones.values()){
    const active=!state.route||state.route===entry.lane,done=state.route===entry.lane&&entry.index<state.routeStone;
+   entry.group.traverse(o=>{if(o.userData.routeEntry)o.visible=!state.route&&!state.stageReady&&!state.solved;});
    entry.top.material.color.set(done?'#99bc83':active?'#dbe0c4':'#9aa99b');entry.sign.material.opacity=active?1:.35;
   }
   duck.visible=state.route==='hag'||state.discoveries.includes('水边小鸭');duck.position.y=.2+Math.sin(state.time*2)*.035;
-  const title=state.solved||state.stageReady?'到对岸啦！':!state.route?state.routeLeg?'中途小岛 · 可以换路':'选路：字母少、跳得多 / 字母多、跳得少':state.action?'这组收到了，等小熊站稳':`按完这一串：${path.codes[index]||''}`;
+  const title=state.solved||state.stageReady?'到对岸啦！':!state.route?state.routeLeg?'中途小岛 · 可以换路':'按 A 选上路 · 按 H 选下路':state.action?'这组收到了，等小熊站稳':`按完这一串：${path.codes[index]||''}`;
   setLabel(status,title);
-  const texts=state.choices.map(c=>`${c.code} · ${c.label}`),newToken=JSON.stringify([texts,state.codeBuffer,Boolean(state.action),state.discoveries]);
+  const texts=state.choices.map(c=>!state.route?`${c.code==='A'?'A ↑ 上方大石头路':'H ↓ 下方小石头路'}`:`${c.code} · ${c.label}`),newToken=JSON.stringify([texts,state.codeBuffer,Boolean(state.action),state.discoveries]);
   if(optionToken!==newToken){optionToken=newToken;options.replaceChildren();for(const text of texts){const item=document.createElement('span');item.textContent=text;options.append(item);}if(state.codeBuffer){const item=document.createElement('small');item.textContent='已输入 '+state.codeBuffer;options.append(item);}}
   options.hidden=state.stageReady||state.solved;host.setAttribute('aria-label',`过河 ${state.routeLeg}/2 ${texts.join('；')} 已输入 ${state.codeBuffer}`);
   const width=Math.max(1,host.clientWidth),height=Math.max(1,host.clientHeight),halfWidth=Math.max(7.2,width/height*4.4);

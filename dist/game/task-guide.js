@@ -1,6 +1,8 @@
+import {activityGuide} from './island-activities.js';
 import {isRoomDesign,roomObjectives} from './playability.js';
 // Explain the controls, without choosing a solution or revealing the next key.
 export function taskGuide(state) {
+ if(state.activityEdition)return activityGuide(state);
  const done=state.solved||state.phase==='complete';
  if(state.version<4||state.stageReady||done&&state.mode!=='room')return null;
  const guide=(title,controls,next)=>({title,controls,next});
@@ -16,7 +18,7 @@ export function taskGuide(state) {
  const options=choices.map(c=>`${c.code||c.key}：${c.label}`).join('；');
  const shortCode=state.codeBuffer?`已输入 ${state.codeBuffer} · 接着输入剩余字母；Backspace 可删末字`:'牌子上的字母从左到右逐个按，不用同时按，也不用回车';
  if(state.routeAdventure){
-  if(state.level===4)return !state.route?guide(state.routeLeg?'到小岛了，再选一条路':'先选路，再按石头上的字母','A：大石头路，3 跳 × 2 字母；H：捷径，2 跳 × '+(state.lessonStageIndex===2?4:3)+' 字母','两条都算完成；中途小岛可以换路，捷径有小鸭'):guide('输入当前石头的完整字母串','从左到右逐个按；打完整串跳一次，Backspace 可修正',state.codeBuffer?'已输入 '+state.codeBuffer:'站稳后再看下一块，不用按回车');
+  if(state.level===4)return !state.route?guide(state.routeLeg?'到小岛了，再选一条路':'先选路，再按石头上的字母','A：上方大石头路，3 跳 × 2 字母；H：下方小石头路，2 跳 × '+(state.lessonStageIndex===2?4:3)+' 字母','两条都算完成；中途小岛可以换路，捷径有小鸭'):guide('输入当前石头的完整字母串','从左到右逐个按；打完整串跳一次，Backspace 可修正',state.codeBuffer?'已输入 '+state.codeBuffer:'站稳后再看下一块，不用按回车');
   return guide(`这段要去：${state.routeGraph.nodes[state.routeGraph.goal].label}`,'按任一路牌上的完整字母串，走到目的地就完成',state.codeBuffer?shortCode:'可以回头或绕路；走过的小径会标记，探索不计错');
  }
  if(done&&state.mode==='room')return guide('任务完成，继续自由布置',state.held?'输入位置上的字母串，把物品放下':'输入物品上的字母串拿起，再选位置','这时不用再完成清单；想结束就点左上角「冒险地图」');

@@ -1,10 +1,11 @@
+import * as Activities from './island-activities.js';
 import * as Classic from './engine-classic.js';
 import * as Routes from './route-adventure.js';
 export * from './engine-classic.js';
-export const create=(level,stage=0,seed)=>[4,5].includes(level)?Routes.createRoute(level,stage,seed):Classic.create(level,stage,seed,[6,8,12].includes(level)?5:4);
-export const press=(state,key)=>state.routeAdventure?Routes.pressRoute(state,key):Classic.press(state,key);
-export const tick=(state,dt)=>state.routeAdventure?Routes.tickRoute(state,dt):Classic.tick(state,dt);
-export const snapshot=state=>state.routeAdventure?Routes.snapshotRoute(state):Classic.snapshot(state);
-export const restore=value=>{try{const parsed=typeof value==='string'?JSON.parse(value):value;const saved=Object.getOwnPropertyDescriptor(parsed||{},'state');if(saved&&!Object.hasOwn(saved,'value'))return null;const flag=Object.getOwnPropertyDescriptor(saved?.value||{},'routeAdventure');if(flag&&!Object.hasOwn(flag,'value'))return null;return flag?.value?Routes.restoreRoute(parsed):Classic.restore(parsed);}catch{return null;}};
-export const advanceStage=state=>state.routeAdventure?Routes.advanceRoute(state):Classic.advanceStage(state);
-export const getRequiredKeys=state=>state.routeAdventure?[...new Set(state.choices.flatMap(c=>[...c.code]))]:Classic.getRequiredKeys(state);
+export const create=(level,stage=0,seed)=>[5,6,8,11,12].includes(level)?Activities.createActivity(level,stage,seed):[4,5].includes(level)?Routes.createRoute(level,stage,seed):Classic.create(level,stage,seed,[6,8,12].includes(level)?5:4);
+export const press=(state,key)=>state.activityEdition?Activities.pressActivity(state,key):state.routeAdventure?Routes.pressRoute(state,key):Classic.press(state,key);
+export const tick=(state,dt)=>state.activityEdition?Activities.tickActivity(state,dt):state.routeAdventure?Routes.tickRoute(state,dt):Classic.tick(state,dt);
+export const snapshot=state=>state.activityEdition?Activities.snapshotActivity(state):state.routeAdventure?Routes.snapshotRoute(state):Classic.snapshot(state);
+export const restore=value=>{try{const parsed=typeof value==='string'?JSON.parse(value):value;const saved=Object.getOwnPropertyDescriptor(parsed||{},'state');if(saved&&!Object.hasOwn(saved,'value'))return null;const edition=Object.getOwnPropertyDescriptor(saved?.value||{},'activityEdition');if(edition&&!Object.hasOwn(edition,'value'))return null;if(edition?.value)return Activities.restoreActivity(parsed);const flag=Object.getOwnPropertyDescriptor(saved?.value||{},'routeAdventure');if(flag&&!Object.hasOwn(flag,'value'))return null;return flag?.value?Routes.restoreRoute(parsed):Classic.restore(parsed);}catch{return null;}};
+export const advanceStage=state=>state.activityEdition?Activities.advanceActivity(state):state.routeAdventure?Routes.advanceRoute(state):Classic.advanceStage(state);
+export const getRequiredKeys=state=>state.activityEdition?Activities.activityKeys(state):state.routeAdventure?[...new Set(state.choices.flatMap(c=>[...c.code]))]:Classic.getRequiredKeys(state);

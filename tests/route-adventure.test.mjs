@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as Engine from '../dist/game/engine.js';
+import * as Runtime from '../dist/game/engine.js';
+import {createRoute} from '../dist/game/route-adventure.js';
+const Engine={...Runtime,create:createRoute};
 import * as Classic from '../dist/game/engine-classic.js';
 import {riverLeg,forestGraph} from '../dist/game/route-adventure.js';
 import {taskGuide} from '../dist/game/task-guide.js';

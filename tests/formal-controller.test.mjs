@@ -1,3 +1,4 @@
+import {nextActivityKey} from './activity-driver.mjs';
 import {roomObjectives,isRoomDesign} from '../dist/game/playability.js';
 import {taskGuide} from '../dist/game/task-guide.js';
 import test from 'node:test';
@@ -5,7 +6,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as currentEngine from '../dist/game/engine.js';
+import * as classicEngine from '../dist/game/engine-classic.js';
 const engine=currentEngine;
+test('restarting an older activity saves the new round then reloads its matching renderer',async()=>{
+ for(const level of [5,6,8,11,12])for(const button of ['upgrade-round','restart','replay']){
+  const old=classicEngine.snapshot(classicEngine.create(level,0,12));
+  const p=await boot({query:`?level=${level}`,data:progress({[level]:old},{completed:[1,2]})});
+  if(button==='restart'){p.click('intro-next');p.click('pause');}
+  if(button==='replay')p.read("state.solved=true;state.phase='complete';showCheckpoint()");
+  p.click(button);assert.equal(p.reloads(),1,`${level}/${button}`);
+  const saved=JSON.parse(p.values.get(store.STORAGE_KEY));assert.equal(saved.sessions[level].state.activityEdition,1);assert.ok(saved.completed.includes(1));
+ }
+});
 import * as store from '../dist/game/store.js';
 import {getFinger} from '../dist/curriculum.js';
 
@@ -41,7 +53,7 @@ async function boot({modern=true,query='?level=1',data,entries={},page='play',un
  const location={search:query,pathname,hash,href:'',reload(){reloads++;}};
  const history={state:{source:'existing-history'},replaceState(state,title,url){historyCalls.push({state,title,url});this.state=state;const parsed=new URL(url,'https://typing.example');location.search=parsed.search;location.pathname=parsed.pathname;location.hash=parsed.hash;}};
  const world={update(state,dt){rendered.push({state:engine.snapshot(state),dt});}};
- const worldModules=Object.fromEntries(['Orchard','River','Forest','Pairing','Invitation'].map(name=>[`create${name}World`,()=>{if(rendererFailure)throw Error('WebGL unavailable');return world;}]));
+ const worldModules=Object.fromEntries(['Orchard','River','Forest','Pairing','Invitation','Activity'].map(name=>[`create${name}World`,()=>{if(rendererFailure)throw Error('WebGL unavailable');return world;}]));
  const feedbackEvents=[];
  const context=vm.createContext({createFeedback:()=>({unlock(){},stop(){},pulse(){},play:kind=>feedbackEvents.push(kind||'hit')}),taskGuide,...engine,create:fixedSeed===undefined?(modern?currentEngine.create:engine.create):(level,stage=0,seed=fixedSeed)=>currentEngine.create(level,stage,seed),getFinger,STORAGE_KEY:store.STORAGE_KEY,load:()=>store.load(localStorage),save:data=>store.save(data,localStorage),blank:store.blank,recordKeys:(data,keys)=>{recordedKeys.push([...keys]);return store.recordKeys(data,keys);},hasConflict:data=>store.hasConflict(data,localStorage),document,
   window:{localStorage,addEventListener:(name,fn)=>windowEvents.set(name,fn)},localStorage,location,history,navigator:{},URLSearchParams,performance:{now:()=>now},
@@ -53,7 +65,7 @@ async function boot({modern=true,query='?level=1',data,entries={},page='play',un
  const keyup=token=>event('keyup',eventKey(token));
  return {feedbackEvents,nodes,dialogs,stages,entry,counts,tracks,journey,values,writes,prompts,alerts,rendered,document,localStorage,location,history,historyCalls,recordedKeys,event,keydown,keyup,
   tap(token,options={}){const e=keydown(token,options);keyup(token);return e;},
-  state:()=>engine.snapshot(vm.runInContext('state',context)).state,
+  state:()=>plain(vm.runInContext('state',context)),
   practiced:()=>plain(vm.runInContext('data.practiced',context)),read:expression=>vm.runInContext(expression,context),
   advance(seconds,step=.1){const end=now+seconds*1000;while(now+1e-6<end){now=Math.min(end,now+step*1000);frame?.(now);}},
   click:(id,event)=>nodes.get(id).click(event),focus:tag=>{document.activeElement=element(tag);},focusId:id=>nodes.get(id).focus(),
@@ -71,6 +83,7 @@ function sessionWithMetrics(state,extra={}){
  saved.roundMetrics={version:1,level:state.level,seed:state.seed,attemptId:'test-round',snapshotFingerprint:store.snapshotFingerprint(saved.state),...empty(),stages:[0,1,2].map(index=>({...empty(),observed:index===state.lessonStageIndex,automaticHints:index===0})),...extra};return saved;
 }
 function nextTaskKey(state){
+ if(state.activityEdition)return nextActivityKey(state);
  if(isRoomDesign(state)){
   const layouts=Array.from({length:16},(_,n)=>Object.fromEntries(['F','D','V','B'].map((key,i)=>[key,n>>i&1?'M':'N']))).filter(placements=>roomObjectives({...state,placements}).every(goal=>goal.done));
   layouts.sort((a,b)=>Object.keys(a).filter(key=>a[key]!==state.placements[key]).length-Object.keys(b).filter(key=>b[key]!==state.placements[key]).length);

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as Engine from '../dist/game/engine.js';
+import * as Runtime from '../dist/game/engine.js';
+const Engine={...Runtime,create:(level,stage=0,seed)=>Classic.create(level,stage,seed,[6,8,12].includes(level)?5:4)};
 import * as Classic from '../dist/game/engine-classic.js';
 import {roomObjectives} from '../dist/game/playability.js';
 import {forestLayout,forestTaskChoices} from '../dist/game/forest-world.js';

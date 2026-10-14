@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {create,press,tick} from '../dist/game/engine.js';
+import {create as currentCreate,press,tick} from '../dist/game/engine.js';
+import {create as classicCreate} from '../dist/game/engine-classic.js';
+import {createRoute} from '../dist/game/route-adventure.js';
+const create=(level,stage=0,seed)=>level===5?createRoute(level,stage,seed):level===8?classicCreate(level,stage,seed,5):currentCreate(level,stage,seed);
 import {taskGuide} from '../dist/game/task-guide.js';
 
 test('continuous input guidance distinguishes remaining letters from an already queued row',()=>{

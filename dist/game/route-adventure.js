@@ -114,7 +114,7 @@ export function snapshotRoute(state){
  return{version:4,state:{...Classic.snapshot(state).state,routeAdventure:1}};
 }
 // Rebuild only from accepted physical inputs. Derived paths and counters are never trusted from disk.
-function plain(value,depth=0){
+export function plain(value,depth=0){
  if(depth>12)return false;
  if(value===null||['string','boolean'].includes(typeof value))return true;
  if(typeof value==='number')return Number.isFinite(value);

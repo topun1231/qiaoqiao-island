@@ -53,7 +53,7 @@ function metricsSnapshot(engineSnapshot){
  for(let i=0;i<text.length;i++){hash^=text.charCodeAt(i);hash=Math.imul(hash,16777619);}
  return {...engineSnapshot,roundMetrics:{...roundMetrics,snapshotFingerprint:(hash>>>0).toString(16)}};
 }
-function resetRound(){state=createFreshRound(state);roundMetrics=newRoundMetrics();hintRequested=false;syncHints();}
+function resetRound(){const previousEdition=state.activityEdition;state=createFreshRound(state);roundMetrics=newRoundMetrics();hintRequested=false;syncHints();if(previousEdition!==state.activityEdition){if(persist())location.reload();return true;}return false;}
 function metricSummary(){return roundMetrics?`本轮：错按 ${roundMetrics.wrong} 次 / 退格修正 ${roundMetrics.backspace} 次 / 主动提示 ${roundMetrics.help} 次`:'本轮按键统计：未记录（旧进度不补算）';}
 function updateMetrics(){
  $('round-metrics').textContent=isPractice?'':metricSummary();
@@ -73,7 +73,7 @@ function currentHelp(){
  return {text:codes.length?`当前可选${codes.some(choice=>choice.code.length>1)?'短码':'键'}：${codes.map(choice=>`${choice.label} ${choice.code}`).join('；')}${state.codeBuffer?`。已经输入：${state.codeBuffer}`:''}`:'请等小熊完成动作，再看新的目标',keys:[...new Set(codes.flatMap(choice=>choice.code==='Space'||choice.code==='Backspace'?[choice.code]:[...choice.code]))]};
 }
 const display=k=>k==='Space'?'空格':k==='Backspace'?'退格':k||'';
-const levelTitle=state.routeAdventure&&level===5?'自己选路找朋友':spec.title;
+const levelTitle=state.activityEdition?({5:'迷宫找朋友',6:'迷宫野餐采购',8:'看分区整理物品',11:'挨家送邀请',12:'一起玩三个小游戏'})[level]:state.routeAdventure&&level===5?'自己选路找朋友':spec.title;
 const copy={catch:['🍐','按一次字母','🧸','接住果子',level===2?'先看三种水果的清单，再为朋友选篮子；最后按新的组合配齐水果。每次都看清字母和数量':'看果子上的字母，从左到右依次按。可以一颗一颗接，也可以连按；最后照清单装篮子'],stone:['🪨','看清短串','🧸','一步一步跳',level===4?'两条路线都看得见。先按第一块石头选路，再看每一小串连跳；用到整排基准键':'每块石头对应一个字母。按一次就跳一步，可以慢慢按，也可以连贯输入'],forest:['🌳','看路牌字母','🧸','沿路找朋友',level===6?'先选一个目的地，再看路口线索。两件东西都拿到，就能带去野餐':'朋友给你一条线索。看看池塘、蘑菇和路牌，按路牌字母选路。走错会带你回来'],room:['📦','先选物品','🧸','再选摆放处',level===8?'房间已经摆好了，现在要换个用途。先输入物品的拿取码，再输入位置的本次收纳码改放；搬完还能自由布置':'先按物品旁的字母串拿起，再按合适位置上的字母串放下。字母从左到右逐个按，不用回车'],card:['✉️','看完整目标','✎','修好卡片',level===10?'先用 Backspace 退格删掉末尾多出或写错的字，再补上正确的字。只改末尾':'完整目标一直显示。先认识新字母，再把短词完整写到卡片上，不用猜英文词义'],mail:[level===12?'🧺':'✉️',level===12?'选择伙伴':'写好邀请','🧸',level===12?'一起玩野餐':'朋友来野餐',level===12?'朋友已经收到邀请，正在野餐地等你。每段选一位伙伴，写一句话，一起问候、游戏和分享点心':'给所有朋友写一张共同邀请，分三小段写好。两个词之间轻按空格，写完后一起出发']};
 $('title').textContent=isPractice?'自由练习':`第 ${level} 关 · ${levelTitle}`;
 const dialogs=[...document.querySelectorAll('dialog')];
@@ -112,11 +112,11 @@ function keyboard(target,wrong){$('keyboard').innerHTML='';for(const row of ['QW
 function showWarm(){if(storageConflict)return;const key=warmKeys[warmIndex];if(!key){closeDialog('warmup');warmPurpose='';persist();lastTime=performance.now();return;}const finger=getFinger(key);$('warmup-step').textContent=isPractice?`自由练习 · 已按对 ${practiceCount} 次`:`认识新键 · ${warmIndex+1} / ${warmKeys.length} · 认完继续刚才的冒险`;$('warmup-key').textContent=display(key);$('warmup-key').classList.toggle('error',!!warmWrong);$('warmup-finger').textContent=finger?.label||'';$('warmup-return').textContent=key==='Space'?'空格把两个词分开，用拇指轻轻按':key==='Backspace'?`退格会删除末尾一个字，不是 Delete 键。${finger.returnHint}`:finger?.returnHint||'';$('warmup-feedback').textContent=warmWrong?`刚才按了 ${display(warmWrong)}，试试 ${display(key)}`:'在电脑键盘上轻按一次；字母不用按 Shift';keyboard(key,warmWrong);$('practice-end').hidden=!isPractice;openDialog('warmup');}
 function prepareKeys(keys,purpose='task'){const missing=[...new Set(keys)].filter(k=>!data.practiced.includes(k));if(!missing.length)return false;warmKeys=missing;warmIndex=0;warmPurpose=purpose;warmWrong=null;showWarm();return true;}
 function startTask(){feedback.unlock();if(storageConflict||renderFailed||contextLost)return;closeDialog('intro');if(showCheckpoint())return;if(!prepareKeys(getRequiredKeys(state),'entry'))lastTime=performance.now();}
-function showIntro(){if(storageConflict)return;const c=state.routeAdventure||state.contentVersion===5?[...copy[spec.mode].slice(0,4),state.stageDescription]:copy[spec.mode],stage=getStageInfo(state);$('intro-title').textContent=levelTitle;$('intro-copy').textContent=state.version<4?stage.description:stage.index?stage.description:c[4];$('intro-demo').innerHTML=`${c[0]} <span>${c[1]}</span> → ${c[2]} <span>${c[3]}</span>`;$('intro-progress').textContent=(state.version<4?`接着第 ${stage.number} / ${stage.count} 段 · 旧版进度原样保留，重玩可体验混合键挑战；旧按键统计未记录`:state.migrationNotice)||((state.accepted.length||stage.index)?`接着第 ${stage.number} / ${stage.count} 段 · ${stage.title}，已完成的操作都还在`:'先熟悉键位，再混合练习；后两段自己找键，不确定就点「要提示」');openDialog('intro');}
+function showIntro(){if(storageConflict)return;const c=state.activityEdition?[...(level===5||level===6?['⌨','W A S D 选方向','🧸','走一步，自己找路']:level===8?['📦','拿起物品','🟩','按用途放到分区']:level===11?['🏡','去朋友家','✉','当面送出邀请']:[['⚽','移球对准球门','⌨','按门上字母击球'],['🧱','看下一块形状','⌨','按字母搭上积木'],['🪁','W A S D 控制风筝','⭐','绕过云朵摘星']][state.lessonStageIndex]),state.stageDescription]:state.routeAdventure||state.contentVersion===5?[...copy[spec.mode].slice(0,4),state.stageDescription]:copy[spec.mode],stage=getStageInfo(state);$('intro-title').textContent=levelTitle;$('upgrade-round').hidden=!!state.activityEdition||![5,6,8,11,12].includes(level); if(!$('upgrade-round').hidden)$('upgrade-round').textContent='重玩本关，体验新版玩法';$('intro-copy').textContent=state.version<4?stage.description:stage.index?stage.description:c[4];$('intro-demo').innerHTML=`${c[0]} <span>${c[1]}</span> → ${c[2]} <span>${c[3]}</span>`;$('intro-progress').textContent=(state.version<4?`接着第 ${stage.number} / ${stage.count} 段 · 旧版进度原样保留，重玩可体验混合键挑战；旧按键统计未记录`:state.migrationNotice)||((state.accepted.length||stage.index)?`接着第 ${stage.number} / ${stage.count} 段 · ${stage.title}，已完成的操作都还在`:'先熟悉键位，再混合练习；后两段自己找键，不确定就点「要提示」');openDialog('intro');}
 function pause(){feedback.stop();if(renderFailed||isPractice||dialogs.some(d=>d.open))return;state.paused=true;held.clear();captured.clear();persist();openDialog('paused');}
 function resume(){if(storageConflict||renderFailed||contextLost)return;$('pause-copy').textContent='进度已经停在这里。回到键盘前再继续';state.paused=false;closeDialog('paused');held.clear();captured.clear();lastTime=performance.now();persist();}
-function restart(){if(storageConflict||contextLost)return;if(!confirm('从头再玩这一关？已完成记录和练过的字母会保留'))return;resetRound();finishedShown=false;completionDismissed=false;for(const d of dialogs)if(d.open)d.close();persist();showIntro();}
-$('intro-next').onclick=startTask;$('pause').onclick=pause;$('resume').onclick=resume;$('restart').onclick=restart;
+function restart(){if(storageConflict||contextLost)return;if(!confirm('从头再玩这一关？已完成记录和练过的字母会保留'))return;if(resetRound())return;finishedShown=false;completionDismissed=false;for(const d of dialogs)if(d.open)d.close();persist();showIntro();}
+$('upgrade-round').onclick=()=>{if(storageConflict||renderFailed||contextLost)return;if(resetRound())return;finishedShown=false;completionDismissed=false;persist();showIntro();startTask();};$('intro-next').onclick=startTask;$('pause').onclick=pause;$('resume').onclick=resume;$('restart').onclick=restart;
 $('continue-stage').onclick=event=>{
  if(!transitionAllowed(event)||!state.stageReady)return;
  if(!advanceStage(state))return;
@@ -126,7 +126,7 @@ $('continue-stage').onclick=event=>{
  if(!prepareKeys(getRequiredKeys(state),'stage'))lastTime=performance.now();
  renderHUD();
 };
-$('replay').onclick=event=>{if(!transitionAllowed(event))return;resetRound();finishedShown=false;completionDismissed=false;closeDialog('finished');persist();showIntro();};
+$('replay').onclick=event=>{if(!transitionAllowed(event))return;if(resetRound())return;finishedShown=false;completionDismissed=false;closeDialog('finished');persist();showIntro();};
 $('next-level').onclick=event=>{
  if(!transitionAllowed(event)||!(state.solved||state.phase==='complete'))return;
  if(!persist())return;
@@ -194,7 +194,7 @@ function renderHUD(){
  const autoHints=!independent()||hintRequested;
  const error=state.wrongKey&&state.wrongUntil>0,pending=state.pendingCode||state.pendingKey;
  const queued=Array.isArray(state.queue)?state.queue:[],received=pending?[pending]:queued;
- $('message').textContent=!autoHints?(error?`刚才按了 ${display(state.wrongKey)}，这次不合适；进度保留，再看完整目标或场景线索`:received.length?`已接收 ${received.map(display).join(' → ')}，不用重复按`:state.stageReady?'这一段完成，准备好后继续':state.solved||state.phase==='complete'?'任务完成啦':state.action?'小熊正在完成动作，已接收的按键不用重复':state.mode==='forest'||state.mode==='room'?'看清场景线索，输入完整短码；需要时可以主动提示':'看完整目标，自己找键；需要时可以主动提示'):error?`刚才按了 ${display(state.wrongKey)} · ${state.message||'看一看场景里的提示，再试一次'}`:state.message||'';
+ $('message').textContent=!autoHints?(error?`刚才按了 ${display(state.wrongKey)}，这次不合适；进度保留，再看完整目标或场景线索`:received.length?`已接收 ${received.map(display).join(' → ')}，不用重复按`:state.stageReady?'这一段完成，准备好后继续':state.solved||state.phase==='complete'?'任务完成啦':state.action?'小熊正在完成动作，已接收的按键不用重复':state.activityEdition?state.message:state.mode==='forest'||state.mode==='room'?'看清场景线索，输入完整短码；需要时可以主动提示':'看完整目标，自己找键；需要时可以主动提示'):error?`刚才按了 ${display(state.wrongKey)} · ${state.message||'看一看场景里的提示，再试一次'}`:state.message||'';
  document.querySelector('.hintbar').classList.toggle('error',!!error);
  const finishedUI=(state.solved||state.phase==='complete')&&!completionDismissed;
  const activeChoices=state.version>=4&&['forest','room'].includes(state.mode)?state.codeInput?.candidates||[]:(state.choices||[]).filter(c=>!c.disabled&&(spec.mode==='room'||!c.done)),choices=activeChoices.map(c=>c.code?c.code[(state.codeBuffer||'').length]||c.code[0]:c.key),keys=finishedUI||!autoHints?[]:[...new Set(received.length?[...received,...(state.target?[state.target]:[])]:state.target?[state.target]:choices)].slice(0,5);
@@ -237,7 +237,7 @@ function showCheckpoint(){
  }
  return false;
 }
-async function init(){if(replayPending)persist();try{const sources={catch:['./orchard-world.js?v=formal-14','createOrchardWorld'],stone:['./river-world.js','createRiverWorld'],forest:['./forest-world.js','createForestWorld'],room:['./pairing-world.js','createPairingWorld'],card:['./invitation-world.js','createInvitationWorld'],mail:['./invitation-world.js','createInvitationWorld']};const [path,fn]=sources[spec.mode];const mod=await import(path);world=mod[fn]($('world'));
+async function init(){if(replayPending)persist();try{const sources={catch:['./orchard-world.js?v=formal-14','createOrchardWorld'],stone:['./river-world.js','createRiverWorld'],forest:['./forest-world.js','createForestWorld'],room:['./pairing-world.js','createPairingWorld'],card:['./invitation-world.js','createInvitationWorld'],mail:['./invitation-world.js','createInvitationWorld']};const [path,fn]=state.activityEdition&&[5,6,12].includes(level)?['./activity-world.js','createActivityWorld']:sources[spec.mode];const mod=await import(path);world=mod[fn]($('world'));
 // Some renderers create or replace their canvas on the first update.
 $('world').addEventListener('webglcontextlost',e=>{
  e.preventDefault();contextLost=true;state.paused=true;held.clear();captured.clear();modalRelease.clear();persist();
