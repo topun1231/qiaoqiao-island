@@ -3,8 +3,14 @@
 <body><p>正在打开敲敲岛…</p><p><a href="./game/">进入正式版</a></p>
 <script>
 (async()=>{
- // Refresh an existing v8 worker so it cannot return the old map for new game routes.
- try{if('serviceWorker' in navigator){const registration=await navigator.serviceWorker.getRegistration('./');if(registration)await registration.update();}}catch{}
+ // Retire old page caches without changing player saves.
+ try{if('serviceWorker' in navigator){for(const registration of await navigator.serviceWorker.getRegistrations()){
+  const path=new URL(registration.scope).pathname;
+  if(['/', '/v8/', '/preview/'].includes(path))await registration.unregister();
+ }}}catch{}
+ try{if('caches' in window){for(const key of await caches.keys()){
+  if(key.startsWith('qiaoqiao-island-four-')||key.startsWith('qiaoqiao-variety-preview-'))await caches.delete(key);
+ }}}catch{}
  location.replace('./game/'+location.search+location.hash);
 })();
 </script></body></html>

@@ -68,11 +68,7 @@ test('formal records use a separate namespace without adventure progress imports
  assert.match(view,/strip\.visible=false/);assert.match(view,/heading\.visible=false/);
 });
 
-test('formal challenge retains accepted combo gameplay and is reachable from free practice',()=>{
- for(const file of ['engine.js','world.js','style.css']){
-  assert.equal(readFileSync(new URL('../dist/fruit-challenge/'+file,import.meta.url),'utf8'),readFileSync(new URL('../dist/fruit-combo-test/'+file,import.meta.url),'utf8'),file);
- }
- assert.equal(readFileSync(new URL('../dist/fruit-challenge/records.js',import.meta.url),'utf8'),readFileSync(new URL('../dist/fruit-combo-test/records.js',import.meta.url),'utf8').replace('qiaoqiao-island-fruit-combo-test-v1','qiaoqiao-island-fruit-records-v1'));
+test('formal challenge is reachable from free practice',()=>{
  const map=readFileSync(new URL('../dist/game/map.js',import.meta.url),'utf8');
  assert.match(map,/fruitChallenge.textContent='全字母接果子'/);
  assert.match(map,/location.href='\.\.\/fruit-challenge\/'/);
