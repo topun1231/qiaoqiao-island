@@ -184,7 +184,7 @@ test('active room help describes only currently available full shortcodes, inclu
 });
 
 test('new late-level keys are taught in small groups before gameplay credit and are incremental',async()=>{
- const page=await boot({query:'?level=12'});page.click('intro-next');assert.equal(page.nodes.get('warmup').open,true);assert.ok(page.read('warmKeys.length')<=3);assert.match(page.nodes.get('warmup-step').textContent,/第 1 组/);
+ const page=await boot({query:'?level=12'});page.click('intro-next');assert.equal(page.nodes.get('warmup').open,true);assert.ok(page.read('warmKeys.length')<=3);assert.match(page.nodes.get('warmup-step').textContent,/认识新键 · 1 \/ /);
  while(page.nodes.get('warmup').open)page.tap(page.read('warmKeys[warmIndex]'));
  const choice=page.read('state.choices.find(c=>!c.done).key');page.tap(choice);page.advance(5);assert.equal(page.nodes.get('warmup').open,true);assert.ok(page.read('warmKeys.length')<26);assert.equal(page.read('roundMetrics.choices'),1);assert.equal(page.read('roundMetrics.correct'),0);
  const first=page.read('warmKeys[warmIndex]');page.tap(first);assert.equal(page.read('roundMetrics.correct'),0);page.event('pagehide');const reloaded=await boot({query:'?level=12',entries:Object.fromEntries(page.values)});reloaded.click('intro-next');assert.equal(reloaded.read('roundMetrics.choices'),1);assert.ok(!reloaded.read('warmKeys').includes(first));

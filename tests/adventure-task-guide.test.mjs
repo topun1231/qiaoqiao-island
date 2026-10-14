@@ -26,7 +26,7 @@ test('short-code selection, partial input, held item and free arranging have dis
  press(state,code[0]);assert.match(taskGuide(state).next,/已输入/);
  for(const key of code.slice(1))press(state,key);
  assert.match(taskGuide(state).title,/正在完成/);
- tick(state,10);assert.ok(state.held);assert.match(taskGuide(state).controls,/本次收纳码/);
+ tick(state,10);assert.ok(state.held);assert.match(taskGuide(state).controls,/位置上的字母串/);
  assert.match(taskGuide({...state,held:null,solved:true,phase:'complete'}).title,/自由布置/);
 });
 test('checkpoints hide guidance, while return routes do not ask to fetch food again',()=>{

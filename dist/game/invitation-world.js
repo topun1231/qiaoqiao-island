@@ -169,7 +169,9 @@ function createCardWorld(container){
    if(state.wrongKey&&Number(state.level)===9)cardInstruction.textContent='照着完整目标，从光标的位置继续写';
   }
   const pos=new THREE.Vector3(-.4,2.32,-.15).project(camera),panelWidth=Math.min(302,width-24),px=(pos.x*.5+.5)*width,py=(-pos.y*.5+.5)*height;
-  cardPanel.style.width=`${panelWidth}px`;cardPanel.style.left=`${Math.max(panelWidth/2+12,Math.min(width-panelWidth/2-12,px))}px`;cardPanel.style.top=`${Math.max(188,py)}px`;
+  cardPanel.style.width=`${panelWidth}px`;
+  const bounds=invitationLabelBounds(px,py,panelWidth,cardPanel.offsetHeight||210,width,height);
+  cardPanel.style.left=`${bounds.x}px`;cardPanel.style.top=`${bounds.y}px`;
  }
  const table=new THREE.Group();table.name='invitation-writing-worktable';scene.add(table);
  const cube=new THREE.BoxGeometry(1,1,1),ellGeo=new THREE.SphereGeometry(1,14,10);

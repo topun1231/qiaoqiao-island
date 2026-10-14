@@ -48,7 +48,7 @@ export function createRouteRiverWorld(host){
    entry.top.material.color.set(done?'#99bc83':active?'#dbe0c4':'#9aa99b');entry.sign.material.opacity=active?1:.35;
   }
   duck.visible=state.route==='hag'||state.discoveries.includes('水边小鸭');duck.position.y=.2+Math.sin(state.time*2)*.035;
-  const title=state.solved||state.stageReady?'到对岸啦！':!state.route?state.routeLeg?'中途小岛 · 可以换路':'选路：短码多跳 / 长码少跳':state.action?'这组收到了，等小熊站稳':`输入完整短码：${path.codes[index]||''}`;
+  const title=state.solved||state.stageReady?'到对岸啦！':!state.route?state.routeLeg?'中途小岛 · 可以换路':'选路：字母少、跳得多 / 字母多、跳得少':state.action?'这组收到了，等小熊站稳':`按完这一串：${path.codes[index]||''}`;
   setLabel(status,title);
   const texts=state.choices.map(c=>`${c.code} · ${c.label}`),newToken=JSON.stringify([texts,state.codeBuffer,Boolean(state.action),state.discoveries]);
   if(optionToken!==newToken){optionToken=newToken;options.replaceChildren();for(const text of texts){const item=document.createElement('span');item.textContent=text;options.append(item);}if(state.codeBuffer){const item=document.createElement('small');item.textContent='已输入 '+state.codeBuffer;options.append(item);}}
