@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import * as engineAPI from '../dist/game/engine.js';
+import * as engineAPI from '../dist/game/engine-classic.js';
 // Keep the v3 controller regression fixtures; v4 has a dedicated suite.
 const currentEngine={...engineAPI,create:engineAPI.createV3};
 const engine={...currentEngine,create:currentEngine.createLegacy};

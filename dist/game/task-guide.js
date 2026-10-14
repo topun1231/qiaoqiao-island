@@ -7,6 +7,10 @@ export function taskGuide(state) {
  const choices=(state.choices||[]).filter(c=>!c.disabled&&!c.done);
  const options=choices.map(c=>`${c.code||c.key}：${c.label}`).join('；');
  const shortCode=state.codeBuffer?`已输入 ${state.codeBuffer} · 接着输入剩余字母；Backspace 可删末字`:'短码从左到右逐个按，不用同时按，也不用回车';
+ if(state.routeAdventure){
+  if(state.level===4)return !state.route?guide(state.routeLeg?'到小岛了，再选一条路':'先选路，再输入石头短码','A：大石头路，3 跳 × 2 字母；H：捷径，2 跳 × '+(state.lessonStageIndex===2?4:3)+' 字母','两条都算完成；中途小岛可以换路，捷径有小鸭'):guide('输入当前石头的完整字母串','从左到右逐个按；打完整串跳一次，Backspace 可修正',state.codeBuffer?'已输入 '+state.codeBuffer:'站稳后再看下一块，不用按回车');
+  return guide('自己选路，探索森林','输入任一路牌的完整短码；返回路也能走',state.codeBuffer?shortCode:'所有路都能通行；走过的小径会标记，探索不计错');
+ }
  switch(state.mode){
   case 'catch':
    if(state.stage==='select')return guide('先选一篮，开始装水果',`按键盘 ${state.orders.flatMap((order,i)=>state.orderCompleted?.includes(order.id)?[]:[`${order.code||order.key} 选${i?'右':'左'}篮`]).join('，')}`,state.orderCompleted?.length?'选好剩下的篮子，再按水果字母装满':'两个篮子都要装满，先选哪个都可以');

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { create, createV3, press, tick, advanceStage } from '../dist/game/engine.js';
+import { create, createV3, press, tick, advanceStage } from '../dist/game/engine-classic.js';
 import { getRiverPaths, riverRouteLabel } from '../dist/game/river-world.js';
 
 test('v4 longest river routes keep both current short segments on bounded labels', () => {

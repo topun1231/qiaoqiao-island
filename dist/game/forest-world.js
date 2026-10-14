@@ -12,6 +12,7 @@ export function forestCurrentTask(state = {}) {
   return state.task || state.tasks?.[Math.min(state.step || 0, state.tasks.length - 1)] || {};
 }
 export function forestNodePosition(id, state = {}) {
+  if(state.routeGraph?.nodes[id])return [...state.routeGraph.nodes[id].point];
   const match = /^s([0-2])-([nd])(\d+)$/.exec(String(id));
   if (match) {
     const stage=+match[1],i=Math.max(0,Math.min(match[2]==='n'?4:3,+match[3])),xs=CHAPTER_X[stage];
@@ -51,6 +52,7 @@ function branchNodes(state,task,index){
   return (task.branches||[]).map(branch=>({...branch,nodeTo:branch.nodeTo||(branch.key===task.correct?`s${chapterId(state)}-n${Math.min(4,index+1)}`:`s${chapterId(state)}-d${Math.min(3,index)}`),nodeFrom:from}));
 }
 export function forestLayout(state={}){
+  if(state.routeGraph)return{nodes:Object.fromEntries(Object.entries(state.routeGraph.nodes).map(([id,n])=>[id,n.point])),edges:state.routeGraph.edges,landmarks:Object.values(state.routeGraph.nodes)};
   const nodes={},edges=new Map(),landmarks=[];
   const addNode=id=>{if(!nodes[id])nodes[id]=forestNodePosition(id,state);return id;};
   const addEdge=(a,b)=>{if(!a||!b||a===b)return;addNode(a);addNode(b);edges.set(edgeId(a,b),{id:edgeId(a,b),from:a,to:b});};
@@ -315,7 +317,7 @@ function placeReadableSigns(){
 }
 
 function buildLandscape(state){
- const levelChanged=lastState&&lastState.level!==state.level;if(levelChanged)landmarkRecords.clear();
+ const levelChanged=lastState&&lastState.level!==state.level;if(levelChanged||state.routeAdventure)landmarkRecords.clear();
  disposeRoot(landscape);landscape=new THREE.Group();landscape.name='connected-forest-landscape';scene.add(landscape);waitingHoney=waitingJuice=null;landmarkGroups.clear();seed=3381;
  worldLayout=forestLayout(state);
  for(const record of worldLayout.landmarks){if(!landmarkRecords.has(record.id)||record.id.startsWith(`s${chapterId(state)}-`))landmarkRecords.set(record.id,record);}
@@ -326,6 +328,12 @@ function buildLandscape(state){
   for(let i=0;i<14;i++){const p=r.points[Math.floor(range(2,r.points.length-2))];ell(i%3?'#cfba8e':'#e7d4a9',[p[0]+range(-.45,.45),.08,p[2]+range(-.32,.32)],[range(.026,.046),.008,range(.035,.060)],landscape).castShadow=false;}
  }
  for(const record of [...landmarkRecords.values()].sort((a,b)=>a.id.localeCompare(b.id)))terrainFeature(record);
+ if(state.routeAdventure){
+  const squirrel=landmarkGroups.get(`s${chapterId(state)}-n2`),scarf=landmarkGroups.get(`s${chapterId(state)}-d1`);
+  if(squirrel){const animal=new THREE.Group();animal.position.set(-.9,.1,1.1);squirrel.add(animal);ell('#a46c3c',[0,.35,0],[.24,.34,.22],animal);ell('#c99455',[0,.7,-.1],[.24,.23,.23],animal);ell('#8f5e38',[0,.46,.3],[.2,.46,.22],animal);for(const side of[-1,1]){ell('#a46c3c',[side*.15,.89,-.1],[.08,.13,.08],animal);ell('#292f26',[side*.19,.73,-.23],[.025,.03,.025],animal);}}
+  if(scarf){block('#cb785b',[0,.18,1.15],[.8,.08,.23],scarf);block('#d89573',[.3,.12,1.4],[.23,.08,.55],scarf);}
+ }
+
  if(state.level===6){terrainFeature({id:'t-mid-bridge',feature:'bridge',position:[3.5,GROUND_Y,-4.7]});terrainFeature({id:'y-mid-flowers',feature:'redFlower',position:[-3.1,GROUND_Y,-4.5]});}
  // Trees grow beside the entire route, never through an active branch or sign.
  const minZ=state.level===5?-47:-23;
@@ -350,6 +358,7 @@ const labels=document.createElement('div');labels.setAttribute('aria-hidden','tr
 function label(kind){const el=document.createElement('div');el.className=`forest-world-label forest-world-${kind}`;el.style.cssText='position:absolute;transform:translate(-50%,-100%);box-sizing:border-box;font-family:system-ui,-apple-system,"Noto Sans SC",sans-serif;color:#485b37;text-align:center;';
  el.style.cssText+=kind==='clue'?'width:max-content;max-width:min(290px,72vw);white-space:normal;padding:9px 13px;border:1px solid #fff8df;border-radius:15px;background:rgba(255,250,229,.95);box-shadow:0 4px 14px #55653e12;font-size:clamp(13px,1.25vw,16px);font-weight:700;line-height:1.5;':'max-width:170px;padding:4px 8px;border-radius:10px;background:rgba(255,249,224,.91);font-size:clamp(11px,1.0vw,13px);font-weight:650;line-height:1.4;white-space:nowrap;';
  labels.appendChild(el);return{el,point:[0,0,0],visible:true};}
+const routeOptions=document.createElement('div');routeOptions.className='route-options';routeOptions.hidden=true;host.appendChild(routeOptions);let routeOptionsToken='';
 const clueLabel=label('clue'),leftLabel=label('landmark'),rightLabel=label('landmark'),basketLabel=label('basket'),locationLabel=label('location');
 const allLabels=[clueLabel,leftLabel,rightLabel,basketLabel,locationLabel];
 function taskChoices(state){
@@ -369,9 +378,14 @@ function updateLabels(state){
  const preview=task.routePreview;
  if(!complete&&!state.action&&Array.isArray(preview)&&preview.length>1&&!clue.includes('→'))clue+='\n接着找：'+preview.map(item=>typeof item==='string'?item:item.label||item.feature||'').filter(Boolean).slice(0,2).join(' → ');
  clueLabel.el.textContent=clue;clueLabel.el.style.whiteSpace='pre-line';
+ if(state.routeAdventure){
+  const token=JSON.stringify([choices.map(c=>[c.code,c.label]),state.codeBuffer,complete]);
+  routeOptions.hidden=complete;if(token!==routeOptionsToken){routeOptionsToken=token;routeOptions.replaceChildren();for(const choice of choices){const item=document.createElement('span');item.textContent=choice.code+' · '+choice.label;routeOptions.append(item);}if(state.codeBuffer){const item=document.createElement('small');item.textContent='已输入 '+state.codeBuffer;routeOptions.append(item);}}
+  host.setAttribute('aria-label','森林探索 '+(state.routeGraph.nodes[current]?.label||'')+' '+choices.map(c=>c.code+' '+c.label).join('；'));
+ }else routeOptions.hidden=true;
  const sorted=choices.map(c=>({...c,point:forestNodePosition(c.nodeTo,state)})).sort((a,b)=>a.point[0]-b.point[0]);
  for(let i=0;i<2;i++){
-  const choice=sorted[i],lab=i?rightLabel:leftLabel,sign=signs[i];lab.visible=!!choice&&!complete;sign.group.visible=!!choice&&!complete;
+  const choice=sorted[i],lab=i?rightLabel:leftLabel,sign=signs[i];lab.visible=!!choice&&!complete;sign.group.visible=!!choice&&!complete&&!state.routeAdventure;
   if(!choice)continue;
   const dest=choice.point,side=i?1:-1;
   // Active boards stand on the near side of this fork, ahead of the old
@@ -380,12 +394,14 @@ function updateLabels(state){
   sign.set(choice.key,!!choice.done,state.action?.key===choice.key,side,forestCodeLabel(state,choice));
   const landmark=landmarkGroups.get(choice.nodeTo)?.position;lab.point=[landmark?.x??dest[0],.33,(landmark?.z??dest[2])+1.1];lab.el.textContent=choice.label;lab.el.style.opacity=choice.done?'.58':'1';
  }
+ if(state.routeAdventure){leftLabel.visible=false;rightLabel.visible=false;}
  const previousTask=state.level===5&&state.step>0?state.tasks?.[Math.min(state.step-1,state.tasks.length-1)]:null,currentLandmark=previousTask?.branches?.find(branch=>branch.key===previousTask.correct)?.label;
- locationLabel.point=[p[0],.15,p[2]+1.15];locationLabel.el.textContent=state.action?'正在沿小径前进':`现在 · ${state.level===5?(currentLandmark||['森林入口','溪边路口','北边林口'][chapterId(state)]):(NODE_NAMES[current]||'林间路口')}`;locationLabel.visible=!complete;
+ locationLabel.point=[p[0],.15,p[2]+1.15];locationLabel.el.textContent=state.action?'正在沿小径前进':`现在 · ${state.level===5?(state.routeGraph?.nodes[current]?.label||currentLandmark||['森林入口','溪边路口','北边林口'][chapterId(state)]):(NODE_NAMES[current]||'林间路口')}`;locationLabel.visible=!complete;
  basketLabel.visible=state.level===6;const items=state.inventory||state.completed||[];basketLabel.el.textContent=items.length?`篮子：${[items.includes('T')?'蜂蜜':'',items.includes('Y')?'果汁':''].filter(Boolean).join(' · ')}`:'野餐篮 · 等你来装';
 }
 function syncTrails(state){
  const nodes=state.traversedNodes||[];for(const group of visitedTrails.values())group.visible=false;
+ if(state.routeAdventure){for(const id of state.visitedEdges){const g=visitedTrails.get(id);if(g)g.visible=true;}return;}
  for(let i=1;i<nodes.length;i++){const g=visitedTrails.get(edgeId(nodes[i-1],nodes[i]));if(g)g.visible=true;}
  if(state.level===5){for(let stage=0;stage<=chapterId(state);stage++){const count=stage<chapterId(state)?4:Math.min(4,state.step||0);for(let i=0;i<count;i++){const g=visitedTrails.get(edgeId(`s${stage}-n${i}`,`s${stage}-n${i+1}`));if(g)g.visible=true;}}}
 }
@@ -409,7 +425,7 @@ function resize(){if(destroyed)return;width=Math.max(1,host.clientWidth);height=
 const observer=new ResizeObserver(resize);observer.observe(host);resize();
 function update(state,dt=0){
  if(destroyed||!state)return;const paused=!!state.paused,delta=paused?0:Math.min(.08,Math.max(0,dt));clock+=delta;
- const chapter=[state.level,chapterId(state),state.contentVersion||0].join('|');if(chapter!==sceneToken){sceneToken=chapter;buildLandscape(state);labelToken='';}
+ const chapter=[state.level,chapterId(state),state.contentVersion||0,state.routeAdventure||0].join('|');if(chapter!==sceneToken){sceneToken=chapter;buildLandscape(state);labelToken='';}
  const token=[chapter,state.nodeId,state.step,state.forkIndex,state.stage,state.phase,state.action?.type,state.action?.key,state.selected,state.message,state.codeBuffer,JSON.stringify(state.choices?.map(c=>[c.code,c.codeCursor])),JSON.stringify(state.inventory),JSON.stringify(state.completed)].join('|');if(token!==labelToken){labelToken=token;updateLabels(state);syncTrails(state);}
  const pose=forestMotionSample(state);bear.position.set(...pose.point);const walking=pose.walking?1:0;
  if(pose.walking){const direction=new THREE.Vector3(...pose.direction);if(direction.lengthSq()>.00001){const desired=Math.atan2(direction.x,direction.z),angle=Math.atan2(Math.sin(desired-bear.rotation.y),Math.cos(desired-bear.rotation.y));if(!paused)bear.rotation.y+=angle*(1-Math.exp(-Math.max(dt,.001)*14));}}
@@ -418,12 +434,12 @@ function update(state,dt=0){
  const items=state.inventory||state.completed||[];basket.visible=state.level===6;basketHoney.visible=items.includes('T');basketJuice.visible=items.includes('Y');if(waitingHoney)waitingHoney.visible=!items.includes('T');if(waitingJuice)waitingJuice.visible=!items.includes('Y');
  // A pickup becomes visible in the same grounded arrival action, then remains.
  if(state.action?.type==='collect'&&!state.action.targetFriend&&state.action.elapsed/state.action.duration>.8){const key=state.action.destination||state.selected;if(key==='T'){basketHoney.visible=true;if(waitingHoney)waitingHoney.visible=false;}else{basketJuice.visible=true;if(waitingJuice)waitingJuice.visible=false;}}
- const friendNode=state.level===5?'s2-n4':'friend',fp=forestNodePosition(friendNode,state);rabbit.visible=state.level===5?(state.solved||state.phase==='complete'||chapterId(state)===2&&state.step>=3):state.lessonStageIndex===2;
+ const friendNode=state.level===5?'s2-n4':'friend',fp=forestNodePosition(friendNode,state);rabbit.visible=state.routeAdventure?chapterId(state)===2:state.level===5?(state.solved||state.phase==='complete'||chapterId(state)===2&&state.step>=3):state.lessonStageIndex===2;
  const friendHome=landmarkGroups.get(friendNode)?.position;rabbit.position.set(friendHome?friendHome.x-.2:fp[0]+2.1,.1+Math.sin(clock*1.8)*.01,friendHome?friendHome.z+1.3:fp[2]+.4);rabbit.rotation.z=Math.sin(clock*.8)*.01;
  basketLabel.point=[bear.position.x,.15,bear.position.z+1.15];
  const changedLevel=lastState&&lastState.level!==state.level;frameCamera(firstFrame||changedLevel,delta);firstFrame=false;positionLabels();renderer.render(scene,camera);lastState={level:state.level};
 }
-function destroy(){if(destroyed)return;destroyed=true;observer.disconnect();labels.remove();const geometries=new Set(),materials=new Set(),textures=new Set();scene.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of(Array.isArray(o.material)?o.material:o.material?[o.material]:[])){materials.add(m);if(m.map)textures.add(m.map);}});for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();for(const d of disposables)d.dispose();renderer.dispose();renderer.domElement.remove();host.style.position=originalPosition;}
+function destroy(){if(destroyed)return;destroyed=true;routeOptions.remove();observer.disconnect();labels.remove();const geometries=new Set(),materials=new Set(),textures=new Set();scene.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const m of(Array.isArray(o.material)?o.material:o.material?[o.material]:[])){materials.add(m);if(m.map)textures.add(m.map);}});for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose();for(const d of disposables)d.dispose();renderer.dispose();renderer.domElement.remove();host.style.position=originalPosition;}
 return{update,destroy};
 }
 

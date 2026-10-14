@@ -2,7 +2,7 @@ import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as THREE from '../dist/vendor/three.module.js';
-import { create, createV3, press, tick } from '../dist/game/engine.js';
+import { create, createV3, press, tick } from '../dist/game/engine-classic.js';
 import { forestCodeLabel, forestMotionSample } from '../dist/game/forest-world.js';
 import { pairingCodeLabel, samplePairingPose, layoutPairingLabels } from '../dist/game/pairing-world.js';
 import { getOrchardPlan, orchardVisibleKeys, orchardSequenceLabels, orchardFruitSpecies } from '../dist/game/orchard-world.js';

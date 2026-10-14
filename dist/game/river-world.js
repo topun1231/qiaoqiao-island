@@ -1,3 +1,4 @@
+import {createRouteRiverWorld} from './route-river-world.js';
 import * as THREE from '../vendor/three.module.js';
 import { createCozyIsland } from './cozy-island.js';
 import { createCozyProps, clamp, ease, lerp } from './cozy-props.js';
@@ -94,7 +95,7 @@ export function sampleRiverPose(state = {}) {
   return { ...frame, root, feet, yaw, bodyScaleY, tuck, pitch, stance: .94 };
 }
 
-export function createRiverWorld(container) {
+function createClassicRiverWorld(container) {
   const island = createCozyIsland(container, 'river');
   const { scene, camera, renderer, bear, body, head, legs, waterMat } = island;
   const p = createCozyProps(scene, camera), { root, mesh, ell, block, cylinder } = p;
@@ -216,3 +217,5 @@ export function createRiverWorld(container) {
     island.dispose({ textures: p.textures.values(), materials: p.materials.values(), geometries: p.geometries });
   } };
 }
+
+export function createRiverWorld(container){let world,routeMode;return{update(state,dt){const next=!!state.routeAdventure;if(!world||routeMode!==next){world?.destroy();routeMode=next;world=next?createRouteRiverWorld(container):createClassicRiverWorld(container);}world.update(state,dt);},destroy(){world?.destroy();}};}

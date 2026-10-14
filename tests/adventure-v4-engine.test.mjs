@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as Engine from '../dist/game/engine.js';
+import * as Engine from '../dist/game/engine-classic.js';
 import * as V3 from '../dist/game/engine-v3.js';
 import {POOLS,fullStageRequiredKeys,remixOrderGroups} from '../dist/game/challenge-curriculum.js';
 const {create,press,tick,advanceStage,snapshot,restore,getRequiredKeys}=Engine;

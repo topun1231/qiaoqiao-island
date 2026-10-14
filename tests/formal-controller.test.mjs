@@ -70,6 +70,12 @@ function sessionWithMetrics(state,extra={}){
  saved.roundMetrics={version:1,level:state.level,seed:state.seed,attemptId:'test-round',snapshotFingerprint:store.snapshotFingerprint(saved.state),...empty(),stages:[0,1,2].map(index=>({...empty(),observed:index===state.lessonStageIndex,automaticHints:index===0})),...extra};return saved;
 }
 function nextTaskKey(state){
+ if(state.routeAdventure&&state.level===5){
+  const graph=state.routeGraph,distances={[graph.goal]:0};
+  for(let n=0;n<10;n++)for(const edge of graph.edges){if(distances[edge.to]!==undefined)distances[edge.from]=Math.min(distances[edge.from]??99,distances[edge.to]+1);if(distances[edge.from]!==undefined)distances[edge.to]=Math.min(distances[edge.to]??99,distances[edge.from]+1);}
+  const choice=[...state.choices].sort((a,b)=>distances[a.nodeTo]-distances[b.nodeTo])[0];return choice.code[state.codeBuffer.length];
+ }
+
  if(state.codeInput?.candidates?.length){
   const choices=(state.choices||[]).filter(c=>!c.disabled&&(state.mode==='room'||!c.done));
   let goal=choices[0];

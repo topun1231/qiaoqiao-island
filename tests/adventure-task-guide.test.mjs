@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {create,press,tick,snapshot,restore} from '../dist/game/engine.js';
+import {create,press,tick,snapshot,restore} from '../dist/game/engine-classic.js';
 import {taskGuide} from '../dist/game/task-guide.js';
 
 test('all 36 stage entries explain controls without mutating or consulting a next-key answer',()=>{

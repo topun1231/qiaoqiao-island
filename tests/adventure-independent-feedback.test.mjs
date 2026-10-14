@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import * as currentEngine from '../dist/game/engine.js';
+import * as currentEngine from '../dist/game/engine-classic.js';
 const engine=currentEngine;
 import * as store from '../dist/game/store.js';
 import {getFinger} from '../dist/curriculum.js';
