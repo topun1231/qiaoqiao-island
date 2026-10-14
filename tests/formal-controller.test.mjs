@@ -1,3 +1,4 @@
+import {roomObjectives,isRoomDesign} from '../dist/game/playability.js';
 import {taskGuide} from '../dist/game/task-guide.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -70,6 +71,13 @@ function sessionWithMetrics(state,extra={}){
  saved.roundMetrics={version:1,level:state.level,seed:state.seed,attemptId:'test-round',snapshotFingerprint:store.snapshotFingerprint(saved.state),...empty(),stages:[0,1,2].map(index=>({...empty(),observed:index===state.lessonStageIndex,automaticHints:index===0})),...extra};return saved;
 }
 function nextTaskKey(state){
+ if(isRoomDesign(state)){
+  const layouts=Array.from({length:16},(_,n)=>Object.fromEntries(['F','D','V','B'].map((key,i)=>[key,n>>i&1?'M':'N']))).filter(placements=>roomObjectives({...state,placements}).every(goal=>goal.done));
+  layouts.sort((a,b)=>Object.keys(a).filter(key=>a[key]!==state.placements[key]).length-Object.keys(b).filter(key=>b[key]!==state.placements[key]).length);
+  const target=layouts[0],key=state.held?target[state.held]:Object.keys(target).find(key=>target[key]!==state.placements[key]);
+  const choice=state.choices.find(c=>c.key===key);return choice.code[state.codeBuffer.length];
+ }
+
  if(state.routeAdventure&&state.level===5){
   const graph=state.routeGraph,distances={[graph.goal]:0};
   for(let n=0;n<10;n++)for(const edge of graph.edges){if(distances[edge.to]!==undefined)distances[edge.from]=Math.min(distances[edge.from]??99,distances[edge.to]+1);if(distances[edge.from]!==undefined)distances[edge.to]=Math.min(distances[edge.to]??99,distances[edge.from]+1);}

@@ -11,6 +11,12 @@ const NODE_NAMES = {hub:'林间入口','t-start':'蜂窝路口','t-mid':'木桥�
 export function forestCurrentTask(state = {}) {
   return state.task || state.tasks?.[Math.min(state.step || 0, state.tasks.length - 1)] || {};
 }
+export function forestTaskChoices(state){
+ const task=forestCurrentTask(state);
+ if(state.level===6&&(state.stage==='select'||state.stage==='travel'))return (state.tasks||[]).filter(t=>state.contentVersion!==5||state.choices.some(c=>c.key===t.key)).map(t=>({key:t.key,code:t.code,label:t.routeOnly?t.label:`${t.label}方向`,nodeTo:t.startNode||t.nodeTo||`${t.key==='Y'?'y':'t'}-${t.routeOnly?'mid':'start'}`,done:(state.completed||[]).includes(t.id)||(state.lessonStageIndex<2&&(state.inventory||[]).includes(t.key))}));
+ if(state.level===5)return branchNodes(state,task,Math.min(3,state.step||0));
+ return(task.branches||[]).map((b,i)=>({...b,nodeTo:b.nodeTo||`${state.selected==='Y'?'y':'t'}-${b.key===task.correct?(state.forkIndex?'end':'mid'):'d'+Math.min(1,state.forkIndex||0)}`}));
+}
 export function forestNodePosition(id, state = {}) {
   if(state.routeGraph?.nodes[id])return [...state.routeGraph.nodes[id].point];
   const match = /^s([0-2])-([nd])(\d+)$/.exec(String(id));
@@ -73,6 +79,12 @@ export function forestLayout(state={}){
     for(const task of state.tasks||[]){for(const fork of task.forks||[])for(const branch of fork.branches||[])addEdge(fork.nodeFrom,branch.nodeTo);}
   }
   addNode(forestCurrentNode(state));
+  if(state.level===6&&state.contentVersion===5){
+    const returning=(state.routeOrder.at(-1)||'Y').toLowerCase(),unused=returning==='t'?'y':'t';
+    for(const [id,edge] of edges)if([edge.from,edge.to].some(node=>/-(?:r?d)\d$/.test(node)||node===`${unused}-return`||node===`${unused}-meet`))edges.delete(id);
+    const visible=new Set([...edges.values()].flatMap(edge=>[edge.from,edge.to]));
+    return {nodes:Object.fromEntries(Object.entries(nodes).filter(([id])=>visible.has(id))),edges:[...edges.values()],landmarks:landmarks.filter(item=>visible.has(item.id))};
+  }
   return {nodes,edges:[...edges.values()],landmarks};
 }
 // Shared by scene and tests: all motion follows one connected ground ribbon.
@@ -317,7 +329,7 @@ function placeReadableSigns(){
 }
 
 function buildLandscape(state){
- const levelChanged=lastState&&lastState.level!==state.level;if(levelChanged||state.routeAdventure)landmarkRecords.clear();
+ const levelChanged=lastState&&lastState.level!==state.level;if(levelChanged||state.routeAdventure||state.contentVersion===5)landmarkRecords.clear();
  disposeRoot(landscape);landscape=new THREE.Group();landscape.name='connected-forest-landscape';scene.add(landscape);waitingHoney=waitingJuice=null;landmarkGroups.clear();seed=3381;
  worldLayout=forestLayout(state);
  for(const record of worldLayout.landmarks){if(!landmarkRecords.has(record.id)||record.id.startsWith(`s${chapterId(state)}-`))landmarkRecords.set(record.id,record);}
@@ -361,18 +373,12 @@ function label(kind){const el=document.createElement('div');el.className=`forest
 const routeOptions=document.createElement('div');routeOptions.className='route-options';routeOptions.hidden=true;host.appendChild(routeOptions);let routeOptionsToken='';
 const clueLabel=label('clue'),leftLabel=label('landmark'),rightLabel=label('landmark'),basketLabel=label('basket'),locationLabel=label('location');
 const allLabels=[clueLabel,leftLabel,rightLabel,basketLabel,locationLabel];
-function taskChoices(state){
- const task=forestCurrentTask(state);
- if(state.level===6&&(state.stage==='select'||state.stage==='travel'))return (state.tasks||[]).map(t=>({key:t.key,code:t.code,label:t.routeOnly?t.label:`${t.label}方向`,nodeTo:t.startNode||t.nodeTo||`${t.key==='Y'?'y':'t'}-${t.routeOnly?'mid':'start'}`,done:(state.completed||[]).includes(t.id)||(state.lessonStageIndex<2&&(state.inventory||[]).includes(t.key))}));
- if(state.level===5)return branchNodes(state,task,Math.min(3,state.step||0));
- return(task.branches||[]).map((b,i)=>({...b,nodeTo:b.nodeTo||`${state.selected==='Y'?'y':'t'}-${b.key===task.correct?(state.forkIndex?'end':'mid'):'d'+Math.min(1,state.forkIndex||0)}`}));
-}
 function updateLabels(state){
- const task=forestCurrentTask(state),current=forestCurrentNode(state),p=forestNodePosition(current,state),complete=state.stageReady||state.phase==='complete',choices=taskChoices(state);
+ const task=forestCurrentTask(state),current=forestCurrentNode(state),p=forestNodePosition(current,state),complete=state.stageReady||state.phase==='complete',choices=forestTaskChoices(state);
  const anchor=state.action?.from&&typeof state.action.from==='string'?forestNodePosition(state.action.from,state):p;signAnchor=anchor;signPlacementToken='';
  clueLabel.point=[anchor[0],3.05,anchor[2]-1.65];
  let clue=task.clue||'蜂蜜和果汁，先去哪一处？';
- if(state.level===6&&state.stage==='select')clue=state.lessonStageIndex===2?'篮子准备好了，走哪条路去野餐？':state.inventory?.length?'带好已取到的一份，去找另一份':'蜂蜜和果汁，先去哪一处？';
+ if(state.level===6&&state.stage==='select')clue=state.lessonStageIndex===2?(state.contentVersion===5?'两份都带齐啦，沿路标送到朋友身边':'篮子准备好了，走哪条路去野餐？'):state.inventory?.length?'带好已取到的一份，去找另一份':'蜂蜜和果汁，先去哪一处？';
  if(state.action?.type==='detour')clue='这条路和线索不同，回到刚才的路口';
  else if(complete)clue=state.level===5?(state.solved?'找到朋友啦！':state.lessonStageIndex===0?'走到溪边啦，接着往森林深处走':'穿过溪边小径啦，朋友就在前面'):state.solved?'两份点心都送到朋友身边啦':`${(state.inventory||[]).includes('T')?'蜂蜜':'果汁'}收好啦，继续带着走`;
  const preview=task.routePreview;

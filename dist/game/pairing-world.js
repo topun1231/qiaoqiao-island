@@ -445,7 +445,7 @@ export function createPairingWorld(container) {
         label.el.className=`pairing-world-label item${picking?' available':' quiet'}${isHeld?' held':''}`;
         const goalZone=state.zones?.find(zone=>zone.key===item?.goalZone);
         const goalCode=display.mixed?goalZone?.codesByItem?.[key]||goalZone?.code||'':item?.goalZone;
-        const goalHint=!state.solved&&!state.freePlay&&item?.goalZone?`送到 ${goalZone?.label||PAIRING_ZONES[item.goalZone]?.label||item.goalZone}${goalCode?` (${goalCode})`:''}`:'';
+        const goalHint=state.contentVersion===5&&level===8&&!state.solved?'按上方用途要求，左右都能放':!state.solved&&!state.freePlay&&item?.goalZone?`送到 ${goalZone?.label||PAIRING_ZONES[item.goalZone]?.label||item.goalZone}${goalCode?` (${goalCode})`:''}`:'';
         label.tagline.textContent=action?.item===key?(action.type==='place'?'正在放下':pose.grip>.98?(goalHint?`拿好啦 · ${goalHint}`:'拿好啦'):'小熊来拿了'):isHeld?(goalHint?`已拿起 · ${goalHint}`:'已拿起 · 选位置'):goalHint|| (placed?'还可以再拿':'↑ 拿取');
         label.count.textContent='';
         const p=[...pose.objects[key].position];p[1]+=PAIRING_ITEMS[key].height+.23;
@@ -457,7 +457,7 @@ export function createPairingWorld(container) {
         label.el.className=`pairing-world-label destination${state.held&&!action?' available':' quiet'}`;
         const zone=state.zones?.find(zone=>zone.key===key);
         label.name.textContent=zone?.label||PAIRING_ZONES[key].label;
-        label.tagline.textContent=state.held?'↓ 放置':'小区域';label.count.textContent=state.solved||state.freePlay?`${count}件`:`${count}/${zone?.capacity??(level===8?2:1)}`;
+        label.tagline.textContent=state.held?'↓ 放置':'小区域';label.count.textContent=state.solved||state.freePlay?`${count}件`:state.contentVersion===5&&level===8?`${count}件 / 最多3件`:`${count}/${zone?.capacity??(level===8?2:1)}`;
         project(label.el,PAIRING_ZONES[key].anchor,PAIRING_ZONES[key].center,true,key);
       }
     }
@@ -467,7 +467,7 @@ export function createPairingWorld(container) {
       const goals=state.items?.filter(item=>item.goalZone===zone)||[];
       for(let slot=0;slot<4;slot++) {
         const rest=restMeshes[index*4+slot],item=goals[slot];
-        rest.visible=!state.solved&&!state.freePlay&&slot<capacity;
+        rest.visible=!state.solved&&!state.freePlay&&slot<capacity&&!(state.contentVersion===5&&level===8);
         const siblings=goals.filter(other=>(['V','B'].includes(other.key))===(['V','B'].includes(item?.key)));
         rest.position.set(...pairingSlotPosition(zone,item?siblings.indexOf(item):slot,item?siblings.length:capacity,(state.contentVersion>=3||state.version>=3)?item?.key:''));rest.position.y+=.008;
         const filled=item?state.placements?.[item.key]===zone&&state.held!==item.key:slot<keys.filter(key=>state.placements?.[key]===zone&&key!==state.held).length;

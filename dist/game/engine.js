@@ -1,7 +1,7 @@
 import * as Classic from './engine-classic.js';
 import * as Routes from './route-adventure.js';
 export * from './engine-classic.js';
-export const create=(level,stage=0,seed)=>[4,5].includes(level)?Routes.createRoute(level,stage,seed):Classic.create(level,stage,seed);
+export const create=(level,stage=0,seed)=>[4,5].includes(level)?Routes.createRoute(level,stage,seed):Classic.create(level,stage,seed,[6,8,12].includes(level)?5:4);
 export const press=(state,key)=>state.routeAdventure?Routes.pressRoute(state,key):Classic.press(state,key);
 export const tick=(state,dt)=>state.routeAdventure?Routes.tickRoute(state,dt):Classic.tick(state,dt);
 export const snapshot=state=>state.routeAdventure?Routes.snapshotRoute(state):Classic.snapshot(state);

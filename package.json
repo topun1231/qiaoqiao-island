@@ -1,12 +1,13 @@
 {
   "name": "qiaoqiao-island",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "test:adventure": "node --test tests/adventure-*.test.mjs tests/formal-controller.test.mjs tests/route-adventure.test.mjs",
+    "test:adventure": "node --test tests/adventure-*.test.mjs tests/formal-controller.test.mjs tests/route-adventure.test.mjs tests/playability.test.mjs",
     "test:fruit": "node --test tests/fruit-challenge*.test.mjs",
-    "test:routes": "node --test tests/route-adventure.test.mjs"
+    "test:routes": "node --test tests/route-adventure.test.mjs",
+    "test:playability": "node --test tests/playability.test.mjs"
   }
 }

@@ -1,3 +1,4 @@
+import {isRoomDesign,roomObjectives} from './playability.js';
 // Explain the controls, without choosing a solution or revealing the next key.
 export function taskGuide(state) {
  const done=state.solved||state.phase==='complete';
@@ -11,6 +12,8 @@ export function taskGuide(state) {
   if(state.level===4)return !state.route?guide(state.routeLeg?'到小岛了，再选一条路':'先选路，再输入石头短码','A：大石头路，3 跳 × 2 字母；H：捷径，2 跳 × '+(state.lessonStageIndex===2?4:3)+' 字母','两条都算完成；中途小岛可以换路，捷径有小鸭'):guide('输入当前石头的完整字母串','从左到右逐个按；打完整串跳一次，Backspace 可修正',state.codeBuffer?'已输入 '+state.codeBuffer:'站稳后再看下一块，不用按回车');
   return guide('自己选路，探索森林','输入任一路牌的完整短码；返回路也能走',state.codeBuffer?shortCode:'所有路都能通行；走过的小径会标记，探索不计错');
  }
+ if(isRoomDesign(state))return guide(['布置阅读角','准备小表演','布置安静阅读角'][state.lessonStageIndex],state.held?'输入位置短码放下；左右都可选':'先输入物品短码拿起，再选放置位置',roomObjectives(state).map(goal=>`${goal.done?'✓':'○'} ${goal.label}`).join(' · '));
+ if(state.contentVersion===5&&state.level===6)return guide(state.lessonStageIndex===2?'带齐两份，送到朋友身边':state.inventory.length?'保留篮中食物，去取另一份':'先决定取哪份野餐食物',state.stage==='select'?'输入目的地的完整短码':'输入前方路标短码，沿路前进',state.lessonStageIndex===2?'蜂蜜和果汁都已带齐，送到野餐地就完成':state.inventory.length?'已经取到的东西会一直放在篮子里':'蜂蜜和果汁都要取，顺序由你决定');
  switch(state.mode){
   case 'catch':
    if(state.stage==='select')return guide('先选一篮，开始装水果',`按键盘 ${state.orders.flatMap((order,i)=>state.orderCompleted?.includes(order.id)?[]:[`${order.code||order.key} 选${i?'右':'左'}篮`]).join('，')}`,state.orderCompleted?.length?'选好剩下的篮子，再按水果字母装满':'两个篮子都要装满，先选哪个都可以');

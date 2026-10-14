@@ -1,3 +1,4 @@
+import {applyPlayability,isRoomDesign,roomObjectives} from './playability.js';
 import * as PreviousEngine from './engine-v3.js';
 import { POOLS, NEW_KEYS, STAGE_NAMES, normalizeSeed, applyChallenge, decorateCodes, codeChoices, stageRequiredKeys } from './challenge-curriculum.js';
 /**
@@ -229,12 +230,13 @@ function definitions(state) {
     state.friends=clone(FRIENDS).map((friend,i)=>({...friend,text:texts[i],activityLabel:labels[i]})); state.tasks=clone(state.friends); state.total=1;
   }
 }
-export function create(level, lessonStageIndex = 0, seed) {
+export function create(level, lessonStageIndex = 0, seed, contentVersion = 4) {
+  if(contentVersion!==4&&!(contentVersion===5&&[6,8,12].includes(level)))throw new RangeError('Unknown gameplay version');
   const def = getSpec(level);
   if (!def) throw new RangeError('Choose a preview level from 1 to 12.');
   if (!Number.isInteger(lessonStageIndex) || lessonStageIndex < 0 || lessonStageIndex > 2) throw new RangeError('Choose a lesson stage from 0 to 2.');
   const state = {
-    version: 4, contentVersion: 4, seed: normalizeSeed(seed), level, mode: def.mode, phase: 'playing', paused: false,
+    version: 4, contentVersion, seed: normalizeSeed(seed), level, mode: def.mode, phase: 'playing', paused: false,
     lessonStageIndex, startStageIndex: lessonStageIndex, stageReady: false, stageTitle: STAGE_TITLES[lessonStageIndex],
     stageDescription: STAGE_DESCRIPTIONS[level][lessonStageIndex], stageHistory: [], stageStartAccepted: 0,
     legacyCompleted: false, migrationNotice: '', initialPlacements: {}, forkIndex: 0,
@@ -249,6 +251,7 @@ export function create(level, lessonStageIndex = 0, seed) {
   };
   definitions(state);
   applyChallenge(state);
+  applyPlayability(state);
   if (state.mode === 'catch') state.counts = Object.fromEntries([...new Set(state.tasks.map(t=>t.key))].map(key=>[key,0]));
   if (level === 3) state.sequence = state.tasks.map(task => task.sequence).join('');
   if (level === 6 || level === 12) state.stage = 'select';
@@ -262,7 +265,7 @@ export function create(level, lessonStageIndex = 0, seed) {
   if (state.mode === 'room') {
     state.stage = 'pick';
     if (level === 7 && lessonStageIndex > 0) state.placements = lessonStageIndex === 1 ? {Q:'W',O:'P'} : {Q:'W',O:'P',F:'W',D:'W'};
-    if (level === 8) state.placements = [{F:'N',D:'N',V:'N',B:'M'},{F:'M',D:'M',V:'M',B:'N'},{F:'N',D:'N',V:'N',B:'M'}][lessonStageIndex];
+    if (level === 8) state.placements = contentVersion===5 ? [{F:'N',D:'M',V:'N',B:'M'},{F:'N',D:'N',V:'N',B:'M'},{F:'N',D:'M',V:'N',B:'M'}][lessonStageIndex] : [{F:'N',D:'N',V:'N',B:'M'},{F:'M',D:'M',V:'M',B:'N'},{F:'N',D:'N',V:'N',B:'M'}][lessonStageIndex];
     state.initialPlacements = clone(state.placements);
   }
   if (state.mode === 'card') initializeCard(state);
@@ -280,7 +283,7 @@ export function getStageInfo(state) {
 export function advanceStage(state) {
   if (state.version < 4) return PreviousEngine.advanceStage(state);
   if (!state.stageReady || state.phase !== 'stage-ready' || state.action || state.lessonStageIndex >= 2 || state.solved) return false;
-  const next = create(state.level, state.lessonStageIndex + 1, state.seed);
+  const next = create(state.level, state.lessonStageIndex + 1, state.seed, state.contentVersion);
   next.accepted = [...state.accepted]; next.stageStartAccepted = next.accepted.length;
   next.stageHistory = clone(state.stageHistory); next.startStageIndex=state.startStageIndex; next.picnicGuests = [...state.picnicGuests]; next.paused = state.paused;
   next.time = state.time; next.fruitStartedAt = state.time;
@@ -310,6 +313,7 @@ function initializeCard(state) {
   state.buffer = task.initial;
 }
 function roomReady(state) {
+  if(isRoomDesign(state))return roomObjectives(state).every(goal=>goal.done);
   return state.items.every(item => state.placements[item.key] && (!item.goalZone || state.placements[item.key] === item.goalZone)) && state.zones.every(zone => Object.values(state.placements).filter(key => key === zone.key).length === zone.capacity);
 }
 function stoneSegments(state) {
@@ -368,7 +372,7 @@ function refresh(state) {
       if (state.level === 5) state.task = state.tasks[state.step] || null;
       else state.task = currentFork(state);
       if (state.level === 6 && (state.stage === 'select' || state.stage === 'travel')) {
-        state.choices = state.tasks.map(task => ({ key: task.key, label: `${task.label} · ${task.item}`, kind: 'destination', done: state.level === 6 && state.lessonStageIndex < 2 ? state.inventory.includes(task.id) : state.completed.includes(task.id) }));
+        state.choices = state.tasks.filter(task=>state.contentVersion!==5||state.lessonStageIndex<2||task.key===state.routeOrder.at(-1)).map(task => ({ key: task.key, label: `${task.label} · ${task.item}`, kind: 'destination', done: state.level === 6 && state.lessonStageIndex < 2 ? state.inventory.includes(task.id) : state.completed.includes(task.id) }));
       } else {
         state.choices = (state.task?.branches || []).map(branch => ({ ...branch, kind: 'path', done: false }));
       }
@@ -384,7 +388,7 @@ function refresh(state) {
         ...state.zones.map(zone => ({ ...zone, kind: 'zone', count: count(zone.key), done: count(zone.key) === zone.capacity, disabled: state.stage !== 'place' })),
       ];
       state.target = null;
-      state.progress = state.solved || state.stageReady ? state.total : state.items.some(item => item.goalZone) ? state.items.filter(item => state.placements[item.key] === item.goalZone).length : state.zones.reduce((sum, zone) => sum + Math.min(count(zone.key), zone.capacity), 0);
+      state.progress = state.solved || state.stageReady ? state.total : isRoomDesign(state) ? roomObjectives(state).filter(goal=>goal.done).length : state.items.some(item => item.goalZone) ? state.items.filter(item => state.placements[item.key] === item.goalZone).length : state.zones.reduce((sum, zone) => sum + Math.min(count(zone.key), zone.capacity), 0);
       break;
     }
     case 'card': {
@@ -688,7 +692,7 @@ function commit(state, action) {
       state.nodeId=action.to; state.traversedNodes.push(action.to); state.completed.push(action.destination);
       if(!action.targetFriend&&!state.inventory.includes(action.destination)) {state.inventory.push(action.destination);state.routeOrder.push(action.destination);}
       state.step++;state.progress=state.step;state.stage='select';state.selected=null;
-      finish(state,action.targetFriend?'两份食物都送到朋友身边，整篮东西一路都没有丢':state.inventory.length===1?'第一份已经在篮子里，带着它去取另一份':'两份都取到啦，选一条路去见朋友');
+      finish(state,action.targetFriend?'两份食物都送到朋友身边，整篮东西一路都没有丢':state.inventory.length===1?'第一份已经在篮子里，带着它去取另一份':state.contentVersion===5?'两份都取到啦，接着送到朋友身边':'两份都取到啦，选一条路去见朋友');
       break;
     case 'pick':
       if(state.codeBuffer&&!state.pendingCode)state.accepted.push(...state.codeBuffer);
@@ -702,6 +706,7 @@ function commit(state, action) {
       state.step++; state.layoutComplete = roomReady(state);
       if (state.layoutComplete) finish(state, state.lessonStageIndex === 2 ? '每件东西都摆到合适的位置啦！还可以继续改摆' : '这一轮整理好啦，两处都放好了东西');
       else if (state.solved) state.message = '这是你新的摆法，想怎么整理都可以';
+      else if(isRoomDesign(state))state.message='还需要：'+roomObjectives(state).filter(goal=>!goal.done).map(goal=>goal.label).join('；');
       else {
         const count = key => Object.values(state.placements).filter(zone => zone === key).length;
         const crowded = state.zones.find(zone => count(zone.key) > zone.capacity);
@@ -825,7 +830,7 @@ function validSaved(saved, state) {
   for (let i = 0; i < saved.stageHistory.length; i++) {
     const history = saved.stageHistory[i];
     const stageIndex=saved.startStageIndex+i;
-    const stage = create(state.level, stageIndex, state.seed);
+    const stage = create(state.level, stageIndex, state.seed, state.contentVersion);
     if (!history || history.index !== stageIndex || history.title !== stage.stageTitle || history.total !== stage.total || history.progress !== stage.total || !keysOnly(history.accepted) || !history.accepted.length || history.accepted.join('|') !== saved.accepted.slice(historyOffset, historyOffset + history.accepted.length).join('|')) return false;
     historyOffset += history.accepted.length;
     if (stageIndex < saved.lessonStageIndex && stageIndex === saved.lessonStageIndex - 1 && historyOffset !== saved.stageStartAccepted) return false;
@@ -903,7 +908,7 @@ function validSaved(saved, state) {
     const friend = state.friends.find(friend => friend.key === saved.selected);
     if (['write', 'delivery'].includes(saved.stage) && (!friend || saved.targetText !== (state.level===11?state.invitationParts[saved.lessonStageIndex].text:friend.text))) return false;
   }
-  if(saved.contentVersion!==4||!strings(saved.traversedNodes)||!strings(saved.routeOrder)||!strings(saved.invitationWritten)||!strings(saved.orderCompleted)||!strings(saved.orderHistory)) return false;
+  if(saved.contentVersion!==state.contentVersion||!strings(saved.traversedNodes)||!strings(saved.routeOrder)||!strings(saved.invitationWritten)||!strings(saved.orderCompleted)||!strings(saved.orderHistory)) return false;
   if(typeof saved.nodeId!=='string'||saved.nodeId.length>60||!Array.isArray(saved.activityHistory)||saved.activityHistory.length>3||!saved.orderCounts||typeof saved.orderCounts!=='object'||Array.isArray(saved.orderCounts)) return false;
   if(saved.lastFruit!==null&&!state.fruitKeys?.includes(saved.lastFruit)) return false;
   if(state.mode==='catch'&&state.orders.length) {
@@ -933,6 +938,7 @@ function validSaved(saved, state) {
     if(saved.nodeId!==node||saved.traversedNodes.some(id=>!/^s[0-2]-n[0-4]$/.test(id)))return false;
   }
   if(state.level===6) {
+    if(state.contentVersion===5&&saved.lessonStageIndex===2&&saved.selected!==null&&saved.selected!==saved.routeOrder.at(-1))return false;
     const validNodes=['hub','t-start','t-mid','t-end','y-start','y-mid','y-end','t-return','t-meet','y-return','y-meet','friend'];
     const expected=Math.min(saved.lessonStageIndex+(saved.stageReady||saved.solved?1:0),2);
     if(!validNodes.includes(saved.nodeId)||saved.traversedNodes.some(id=>!validNodes.includes(id))||saved.routeOrder.join('|')!==saved.inventory.join('|')||saved.inventory.length!==expected)return false;
@@ -944,7 +950,7 @@ function validSaved(saved, state) {
   if(state.level===12) {
     if(saved.picnicGuests.join('|')!=='C|X|Z'||saved.activityHistory.length!==saved.lessonStageIndex-saved.startStageIndex+(saved.stageReady||saved.solved?1:0))return false;
     for(let index=0;index<saved.activityHistory.length;index++){
-      const record=saved.activityHistory[index],stage=saved.startStageIndex+index,def=create(12,stage,state.seed),friend=def.friends.find(friend=>friend.key===record?.friend);
+      const record=saved.activityHistory[index],stage=saved.startStageIndex+index,def=create(12,stage,state.seed,state.contentVersion),friend=def.friends.find(friend=>friend.key===record?.friend);
       if(!friend||record.stage!==stage||record.text!==friend.text||record.activity!==def.activity.id)return false;
     }
   } else if(saved.activityHistory.length)return false;
@@ -967,7 +973,7 @@ export function restore(value) {
     const saved=clone(parsed.state);
     if(!Object.hasOwn(saved,'pendingKey'))saved.pendingKey=null;
     if(Array.isArray(saved.stageHistory))for(const history of saved.stageHistory)if(history&&Number.isInteger(history.index)&&history.index>=0&&history.index<3&&typeof history.title==='string'&&history.title.length<=40)history.title=STAGE_TITLES[history.index];
-    const state=create(saved.level,saved.lessonStageIndex,saved.seed);
+    const state=create(saved.level,saved.lessonStageIndex,saved.seed,saved.contentVersion);
     if(!validSaved(saved,state))return null;
     for(const key of SAVED_FIELDS)state[key]=saved[key];
     // Initial room positions are deterministic per chapter; actual saved
