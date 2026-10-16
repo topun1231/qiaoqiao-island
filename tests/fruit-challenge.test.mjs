@@ -69,9 +69,10 @@ test('formal records use a separate namespace without adventure progress imports
 });
 
 test('formal challenge is reachable from free practice',()=>{
- const map=readFileSync(new URL('../dist/game/map.js',import.meta.url),'utf8');
- assert.match(map,/fruitChallenge.textContent='全字母接果子'/);
- assert.match(map,/location.href='\.\.\/fruit-challenge\/'/);
+ const menu=readFileSync(new URL('../dist/game/index.html',import.meta.url),'utf8');
+ assert.match(menu,/<a id="free-fruit"[^>]*href="\.\.\/fruit-challenge\/"/);
+ assert.match(menu,/<a id="free-chase"[^>]*href="\.\.\/chase\/"/);
+ assert.doesNotMatch(menu,/id="practice-dialog"/);
  const html=readFileSync(new URL('../dist/fruit-challenge/index.html',import.meta.url),'utf8');
  assert.match(html,/正式版/);assert.doesNotMatch(html,/试玩/);
 });

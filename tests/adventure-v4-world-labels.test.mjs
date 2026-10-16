@@ -111,6 +111,21 @@ test('six long room labels stay separated inside 500px without changing ground-n
   const state=create(8,1,42),v3=createV3(8,1);assert.deepEqual(samplePairingPose(state).objects,samplePairingPose(v3).objects);
 });
 
+test('level 7 hides inactive destination codes and marks placed objects without stale instructions',()=>{
+ const {world,host}=scene(createPairingWorld),state=create(7,0,42);
+ const item=state.items[0],zone=state.zones.find(zone=>zone.key===item.goalZone);
+ world.update(state);
+ for(const zone of state.zones)assert.equal(pairingCodeLabel(state,zone.key).code,'');
+ enter(state,item.code);
+ assert.equal(pairingCodeLabel(state,zone.key).code,zone.codesByItem[item.key],'pickup animation still allows the correct next code');
+ complete(state);enter(state,zone.codesByItem[item.key]);complete(state);world.update(state);
+ const label=find(host,node=>node.dataset?.key===item.key);
+ assert.match(label.className,/\bsorted\b/);
+ assert(find(label,node=>node.textContent==='✓ 已放好'));
+ assert(!find(label,node=>node.textContent?.startsWith('送到')));
+ world.destroy();
+});
+
 test('orchard expands to four/six keys but keeps full four-key chunks and at most three fruit choices',()=>{
   for(const level of[1,2])for(const stage of[0,1,2]){
     const state=create(level,stage,42),plan=getOrchardPlan(state);assert.equal(plan.keys.length,level===1?4:6);assert.equal(plan.total,state.tasks.length);

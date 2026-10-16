@@ -1,3 +1,4 @@
+import {recordReplay,replayGoal,stampCount} from '../dist/game/replay-goals.js';
 import {taskGuide} from '../dist/game/task-guide.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -28,7 +29,7 @@ async function boot({modern=false,query='?level=1',data,entries={},page='play',u
   const classes=new Set(),events=new Map();
   const node={dataset:{},tagName:tag.toUpperCase(),id,hidden:false,disabled:false,open:false,children:[],textContent:'',innerHTML:'',style:{},attributes:{},events,
    classList:{toggle(name,on){on??=!classes.has(name);on?classes.add(name):classes.delete(name);return on;},contains:name=>classes.has(name)},
-   append(...children){this.children.push(...children);},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},
+   replaceChildren(...children){this.children=children;},append(...children){this.children.push(...children);},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},
    addEventListener:(name,fn)=>events.set(name,fn),focus(){document.activeElement=this;},
    showModal(){this.returnFocus=document.activeElement;this.open=true;},close(){this.open=false;document.activeElement=this.returnFocus;},click(event={detail:1}){if(!this.disabled){this.onclick?.(event);events.get('click')?.(event);}},querySelector(){return this.status;}};
   if(id)nodes.set(id,node);return node;
@@ -44,7 +45,7 @@ async function boot({modern=false,query='?level=1',data,entries={},page='play',u
  const history={state:{source:'existing-history'},replaceState(state,title,url){historyCalls.push({state,title,url});this.state=state;const parsed=new URL(url,'https://typing.example');location.search=parsed.search;location.pathname=parsed.pathname;location.hash=parsed.hash;}};
  const world={update(state,dt){rendered.push({state:engine.snapshot(state),dt});}};
  const worldModules=Object.fromEntries(['Orchard','River','Forest','Pairing','Invitation'].map(name=>[`create${name}World`,()=>{if(rendererFailure)throw Error('WebGL unavailable');return world;}]));
- const context=vm.createContext({createFeedback:()=>({unlock(){},stop(){},pulse(){},play(){}}),taskGuide,...engine,create:modern?currentEngine.create:engine.create,getFinger,STORAGE_KEY:store.STORAGE_KEY,load:()=>store.load(localStorage),save:data=>store.save(data,localStorage),blank:store.blank,recordKeys:(data,keys)=>{recordedKeys.push([...keys]);return store.recordKeys(data,keys);},hasConflict:data=>store.hasConflict(data,localStorage),document,
+ const context=vm.createContext({recordReplay,replayGoal,stampCount,createFeedback:()=>({unlock(){},stop(){},pulse(){},play(){}}),taskGuide,...engine,create:modern?currentEngine.create:engine.create,getFinger,STORAGE_KEY:store.STORAGE_KEY,load:()=>store.load(localStorage),save:data=>store.save(data,localStorage),blank:store.blank,recordKeys:(data,keys)=>{recordedKeys.push([...keys]);return store.recordKeys(data,keys);},hasConflict:data=>store.hasConflict(data,localStorage),document,
   window:{localStorage,addEventListener:(name,fn)=>windowEvents.set(name,fn)},localStorage,location,history,navigator:{},URLSearchParams,performance:{now:()=>now},
   requestAnimationFrame:fn=>{frame=fn;},worldModules,createWorld:()=>world,confirm:message=>{prompts.push(message);return confirmResult;},alert:message=>alerts.push(message),console:{error(){}}});
  const source=read(`${page}.js`).replace(/^import[^\n]+\n/gm,'').replace('const mod=await import(path);','const mod=await Promise.resolve(worldModules);');
@@ -243,14 +244,14 @@ test('storage unavailable reports failure without breaking intro or warmup',asyn
 test('map routes completed rounds to replay and unfinished rounds to their exact level',async()=>{
  const complete=engine.create(1);while(!complete.solved){if(complete.stageReady)engine.advanceStage(complete);engine.press(complete,complete.target);engine.tick(complete,3);}const playing=engine.create(2);engine.press(playing,'D');
  const page=await boot({page:'map',data:progress({1:engine.snapshot(complete),2:engine.snapshot(playing)},{completed:[1,2]})});
- page.stages[0].click();assert.equal(page.location.href,'play.html?level=1&replay=1');page.stages[1].click();assert.equal(page.location.href,'play.html?level=2');assert.match(page.stages[1].status.innerHTML,/接着/);
+ page.stages[0].click();assert.equal(page.location.href,'play.html?level=1&replay=1');page.stages[1].click();assert.equal(page.location.href,'play.html?level=2');assert.match(page.stages[1].status.innerHTML,/继续/);
  page.stages[11].events.get('keydown')({key:' ',preventDefault(){}});assert.equal(page.location.href,'play.html?level=12');
 });
 
 test('map practice stays in the formal game and reset requires confirmation, preserves original keys',async()=>{
  const entries={'typing-island-progress-v1':'original-v8','typing-island-main-catch-v2':'original-catch'};
  const cancelled=await boot({page:'map',data:progress({}, {completed:[1]}),entries,confirmResult:false});cancelled.click('reset-preview');assert.equal(cancelled.prompts.length,1);assert.equal(cancelled.writes.length,0);assert.equal(cancelled.reloads(),0);
- const page=await boot({page:'map',data:progress({}, {completed:[1]}),entries});page.entry.click();assert.equal(page.nodes.get('practice-dialog').open,true);assert.equal(page.nodes.get('practice-groups').children.length,16);page.nodes.get('practice-groups').children.at(-2).click();assert.equal(page.location.href,'play.html?practice=Backspace');page.nodes.get('practice-groups').children.at(-1).click();assert.equal(page.location.href,'../fruit-challenge/');
+ const page=await boot({page:'map',data:progress({}, {completed:[1]}),entries});assert.equal(page.nodes.get('free-fruit').tagName,'A');assert.equal(page.nodes.get('free-chase').tagName,'A');assert.equal(page.nodes.has('practice-dialog'),false);
  page.click('reset-preview');assert.equal(page.reloads(),1);assert.deepEqual(store.load(page.localStorage).completed,[]);for(const [key,value]of Object.entries(entries))assert.equal(page.values.get(key),value);assert.deepEqual([...new Set(page.writes.map(write=>write.key))],[store.STORAGE_KEY]);
 });
 

@@ -1,7 +1,8 @@
 /* Formal edition: readable controls leave more room for the island. */
+.river-sequence-hud{position:absolute;top:10px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:8px 16px;border:1px solid #c8b783;border-radius:12px;background:#fff9e9f5;color:#435d3b;font-size:23px;font-weight:800;letter-spacing:1px;white-space:nowrap;pointer-events:none}
 .sound-toggle{white-space:nowrap;font-size:12px;padding:8px 11px;min-height:36px}
 .sound-toggle[aria-pressed=false]{color:#7b816e;background:#f1f1e5}
-.adventure-play{--bar-top:60px;--guide-top:68px;--scene-top:168px;--bar-bottom:80px}
+.adventure-play{--bar-top:60px;--guide-top:68px;--scene-top:188px;--bar-bottom:80px}
 .adventure-play .top{top:0;height:var(--bar-top);padding:9px 20px;gap:14px;border-bottom:1px solid #d9dfc3}
 .adventure-play .top b{font-size:17px}.adventure-play .top small{display:none}
 .adventure-play .lesson-progress{position:relative;padding-bottom:8px;min-width:160px}
@@ -9,14 +10,14 @@
 #lesson-fill{display:block;height:100%;width:0;background:#7f9f5a;transition:width .25s ease}
 .adventure-play #world{top:var(--bar-top);bottom:var(--bar-bottom);outline:none}
 .adventure-play.has-task-guide #world{top:var(--scene-top)}
-.adventure-play #task-guide{top:var(--guide-top);height:92px;width:min(760px,calc(100% - 32px));border-width:1px;border-radius:18px;gap:3px;padding:7px 14px}
-.adventure-play #task-guide strong{font-size:20px;line-height:1.3}
-.adventure-play #task-guide-controls{font-size:15px;line-height:1.45}
-.adventure-play #task-guide small{font-size:12px;line-height:1.4}
+.adventure-play #task-guide{top:var(--guide-top);height:112px;width:min(800px,calc(100% - 32px));border-width:1px;border-radius:18px;gap:3px;padding:7px 14px}
+.adventure-play #task-guide strong{font-size:23px;line-height:1.3}
+.adventure-play #task-guide-controls{font-size:18px;line-height:1.45}
+.adventure-play #task-guide small{font-size:14px;line-height:1.4}
 .adventure-play #task-guide kbd{min-width:25px;height:27px;font-size:18px;padding:0 5px;margin:0 3px;border-width:1px;border-bottom-width:3px}
 .adventure-play .hintbar{height:var(--bar-bottom);min-height:0;padding:10px 20px;gap:12px;background:#fff9e8f2}
-.adventure-play .hint-copy strong{font-size:13px;line-height:1.45}.adventure-play .hint-copy span{font-size:11px;line-height:1.4}
-.adventure-play #key-hints{max-width:30%}.adventure-play .key-chip{min-width:28px;height:31px;font-size:14px}
+.adventure-play .hint-copy strong{font-size:15px;line-height:1.45}.adventure-play .hint-copy span{font-size:13px;line-height:1.4}
+.adventure-play #key-hints{max-width:30%}.adventure-play .key-chip{min-width:28px;height:31px;font-size:18px}
 .adventure-play #keyboard-needed{bottom:calc(var(--bar-bottom) + 6px);font-size:10px;padding:4px}
 .adventure-play #status-note{top:calc(var(--bar-top) + 3px);max-width:90%;text-align:center;z-index:40}
 .adventure-play dialog{max-width:510px;padding:24px}.adventure-play dialog h1{font-size:24px;margin:8px 0 12px}
@@ -34,9 +35,44 @@
 #streak{display:inline-block;transform-origin:center bottom}
 #goal-fill{display:block;height:100%;background:#b59142;transition:width .2s ease}
 #break-title:focus{outline:none}
-@media(max-width:900px){.adventure-play{--bar-top:58px;--guide-top:66px;--scene-top:166px;--bar-bottom:90px}.adventure-play .top{gap:9px;padding:8px 13px}.adventure-play .top b{font-size:15px}.adventure-play .lesson-progress{min-width:130px}.adventure-play #task-guide{width:calc(100% - 24px)}.adventure-play #task-guide strong{font-size:18px}.adventure-play #task-guide-controls{font-size:14px}.adventure-play #task-guide small{font-size:12px}.adventure-play .hintbar{padding:8px 13px}.adventure-play .hint-copy strong{font-size:12px}.adventure-play .hint-copy span{font-size:10px}}
-@media(max-width:650px){.adventure-play{--bar-top:86px;--guide-top:94px;--scene-top:211px;--bar-bottom:112px}.adventure-play .top{flex-wrap:wrap;gap:4px 8px}.adventure-play .top>a{order:0}.adventure-play .top>div:not(.lesson-progress){order:1;flex:1}.adventure-play .sound-toggle{order:2}.adventure-play #pause{order:3}.adventure-play .top .lesson-progress{order:4;width:100%;flex-direction:row;justify-content:space-between;min-width:0}.adventure-play #task-guide{height:109px;gap:4px}.adventure-play #task-guide strong{font-size:17px}.adventure-play #task-guide-controls{font-size:13px}.adventure-play #task-guide small{font-size:11px}.adventure-play .hintbar{gap:8px}.adventure-play #key-hints{max-width:23%}.adventure-play #finished{top:92px}.adventure-play dialog{padding:18px}.adventure-map .proposal-badge{display:none}.adventure-map #continue-adventure{font-size:12px;padding:8px 12px;margin-top:12px;margin-bottom:5px}.fruit-goal{font-size:10px}.fruit-play .hint{bottom:151px}.fruit-play .top nav{gap:4px}.fruit-play .top nav button{padding:8px;font-size:11px}.fruit-play .identity{gap:6px;padding:9px;font-size:11px}}
+@media(max-width:900px){.adventure-play{--bar-top:58px;--guide-top:66px;--scene-top:186px;--bar-bottom:90px}.adventure-play .top{gap:9px;padding:8px 13px}.adventure-play .top b{font-size:15px}.adventure-play .lesson-progress{min-width:130px}.adventure-play #task-guide{width:calc(100% - 24px)}.adventure-play #task-guide strong{font-size:21px}.adventure-play #task-guide-controls{font-size:17px}.adventure-play #task-guide small{font-size:14px}.adventure-play .hintbar{padding:8px 13px}.adventure-play .hint-copy strong{font-size:14px}.adventure-play .hint-copy span{font-size:12px}}
+@media(max-width:650px){.adventure-play{--bar-top:86px;--guide-top:94px;--scene-top:234px;--bar-bottom:112px}.adventure-play .top{flex-wrap:wrap;gap:4px 8px}.adventure-play .top>a{order:0}.adventure-play .top>div:not(.lesson-progress){order:1;flex:1}.adventure-play .sound-toggle{order:2}.adventure-play #pause{order:3}.adventure-play .top .lesson-progress{order:4;width:100%;flex-direction:row;justify-content:space-between;min-width:0}.adventure-play #task-guide{height:132px;gap:4px}.adventure-play #task-guide strong{font-size:20px}.adventure-play #task-guide-controls{font-size:16px}.adventure-play #task-guide small{font-size:13px}.adventure-play .hintbar{gap:8px}.adventure-play #key-hints{max-width:23%}.adventure-play #finished{top:92px}.adventure-play dialog{padding:18px}.adventure-map .proposal-badge{display:none}.adventure-map #continue-adventure{font-size:12px;padding:8px 12px;margin-top:12px;margin-bottom:5px}.fruit-goal{font-size:10px}.fruit-play .hint{bottom:151px}.fruit-play .top nav{gap:4px}.fruit-play .top nav button{padding:8px;font-size:11px}.fruit-play .identity{gap:6px;padding:9px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){#lesson-fill,#goal-fill{transition:none}}
 @media(min-width:901px) and (max-height:800px){.adventure-map .page-shell{padding:14px 24px 10px}.adventure-map .topbar{height:36px;margin-bottom:12px}.adventure-map .destination{padding:7px 10px}.adventure-map .destination-heading{height:42px}.adventure-map .stage{padding:6px 9px}.adventure-map .stage-pair{margin-top:4px}.adventure-map .free-practice{min-height:60px;padding:9px 13px;margin-top:9px}.adventure-map .island-window{height:235px}.adventure-map .welcome-note{margin:10px 0 13px}.adventure-map #continue-adventure{margin-bottom:14px}.adventure-map .journey-progress{margin-top:14px}}
 
+.pairing-world-label.item.sorted{background:#e3efd9!important;border-color:#76956a!important;color:#4d7043!important;opacity:.8}.pairing-world-label.item.misplaced{background:#fff0dc!important;border:2px solid #c58543!important;color:#855122!important}.pairing-world-label.item.sorted .pairing-tagline{color:#4d7043}.pairing-world-label.item.misplaced .pairing-tagline{color:#855122}
 .activity-controls,.activity-status{position:absolute;z-index:8;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:7px 14px;border:1px solid #c8b783;border-radius:12px;background:#fff9e9f5;color:#435d3b;text-align:center;font-weight:700;pointer-events:none}.activity-controls{bottom:12px;font-size:16px;white-space:nowrap}.activity-status{top:9px;font-size:13px;width:max-content}.activity-controls[hidden]{display:none}@media(max-width:650px){.activity-controls{bottom:34px;font-size:12px;white-space:normal;width:95%}.activity-status{font-size:11px}}
+
+/* Map cards show only the level identity and progress; instructions live in each level. */
+.adventure-map .stage{display:grid;grid-template-columns:20px minmax(0,1fr);gap:4px 6px;align-content:center;min-height:64px;padding:9px 8px}
+.adventure-map .stage-top{grid-column:1;grid-row:1;align-self:start;margin-top:2px}
+.adventure-map .stage h4{grid-column:2;grid-row:1;margin:0;font-size:13px;line-height:1.5;white-space:normal}
+.adventure-map .stage-status{grid-column:2;margin:0;font-size:10px;line-height:1.4;color:#799064}
+.adventure-map .stage-status:empty{display:none}
+@media(min-width:1100px){.adventure-map .stage h4{font-size:14px}}
+
+.activity-controls.mixed-controls{display:flex;gap:8px;background:transparent;border:0;padding:0;white-space:normal;bottom:24px}
+.activity-controls.mixed-controls[hidden]{display:none}
+.activity-option{display:grid;gap:4px;min-width:96px;padding:8px 12px;border:1px solid #c8b783;border-radius:12px;background:#fff9e9f5;box-shadow:0 2px 5px #52663b20}
+.activity-option small{font-size:12px;font-weight:500}.activity-option b{font:700 22px ui-monospace,monospace;letter-spacing:3px}.activity-option .typed{color:#7e9970;opacity:.55}.mixed-controls.acting{opacity:.55}
+@media(max-width:650px){.activity-controls.mixed-controls{bottom:12px;gap:5px;width:auto}.activity-option{min-width:60px;padding:6px}.activity-option b{font-size:17px;letter-spacing:1px}.activity-option small{font-size:10px}}
+
+#world:has(.tower-plan){background:#cbdba7}#world:has(.tower-plan)>canvas{transform:translateY(90px)}
+.activity-status:has(.tower-plan){box-sizing:border-box;padding:12px 14px;border-width:2px}
+.tower-caption{display:block;font-size:24px;line-height:1.25}.tower-direction{display:block;margin-top:5px;font-size:16px;font-weight:400}
+.tower-plan{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;align-items:center;margin-top:12px;width:min(440px,calc(100vw - 64px))}
+.plan-slot{display:flex;flex-direction:column;align-items:center;justify-content:space-between;position:relative;box-sizing:border-box;height:86px;padding:10px 2px 7px;border:3px solid transparent;border-radius:9px}
+.plan-slot small{font-size:15px;white-space:nowrap}.plan-slot.current{border-color:#48683a;background:#f7d988;box-shadow:0 0 0 2px #fff;color:#243c1d}.plan-slot.current small{font-size:17px;font-weight:900}.plan-slot.done{opacity:.45}.plan-slot.done:after{content:'✓';position:absolute;right:0;top:0;color:#345c30;font-size:19px}
+.plan-shape{display:block;box-shadow:0 2px 0 #7d68492b}.shape-F{width:30px;height:30px;background:#d7a74e;border:1px solid #b48b3e}.shape-J{width:48px;height:18px;background:#80ac9a;border:1px solid #608d7c}.shape-K{width:0;height:0;border-left:24px solid transparent;border-right:24px solid transparent;border-bottom:32px solid #ce875d;box-shadow:none}
+@media(max-width:650px){.tower-caption{font-size:22px}.tower-direction{font-size:14px}.tower-plan{gap:4px}.plan-slot{height:78px;padding-top:8px}.plan-slot small{font-size:13px}.plan-slot.current small{font-size:14px}.shape-F{width:27px;height:27px}.shape-J{width:38px;height:16px}.shape-K{border-left-width:19px;border-right-width:19px;border-bottom-width:28px}}
+
+/* Choice cards reserve guide space instead of covering the world. */
+.adventure-play.has-mission-options{--scene-top:290px}
+.adventure-play.has-mission-options #task-guide{height:214px}
+#mission-options{display:flex;width:100%;gap:8px;margin-top:5px;justify-content:center}
+#mission-options[hidden]{display:none}
+.mission-option{flex:1;min-width:0;display:grid;gap:3px;text-align:center;padding:6px 8px;border:1px solid #c7b783;border-radius:10px;background:#fffdf4;color:#435b36;font-size:14px}
+.mission-word{font:700 17px ui-monospace,monospace;overflow-wrap:anywhere}
+.mission-option b{font:800 23px ui-monospace,monospace;letter-spacing:3px}
+#finish-goals{color:#4f713c;font-weight:700}
+@media(max-width:650px){.adventure-play.has-mission-options{--scene-top:354px}.adventure-play.has-mission-options #task-guide{height:252px}.mission-option{padding:6px 4px;font-size:13px}.mission-word{font-size:15px}.mission-option b{font-size:21px;letter-spacing:2px}#mission-options{gap:5px}}

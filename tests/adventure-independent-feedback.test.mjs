@@ -1,3 +1,4 @@
+import {recordReplay,replayGoal,stampCount} from '../dist/game/replay-goals.js';
 import {taskGuide} from '../dist/game/task-guide.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -38,7 +39,7 @@ async function boot({modern=true,query='?level=1',data,entries={},page='play',un
   const classes=new Set(),events=new Map();
   const node={dataset:{},tagName:tag.toUpperCase(),id,hidden:false,disabled:false,open:false,children:[],textContent:'',_html:'',get innerHTML(){return this._html;},set innerHTML(value){this._html=value;this.children=[];},style:{},attributes:{},events,
    classList:{toggle(name,on){on??=!classes.has(name);on?classes.add(name):classes.delete(name);return on;},contains:name=>classes.has(name)},
-   append(...children){this.children.push(...children);},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},
+   replaceChildren(...children){this.children=children;},append(...children){this.children.push(...children);},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},
    addEventListener:(name,fn)=>events.set(name,fn),focus(){document.activeElement=this;},
    showModal(){this.returnFocus=document.activeElement;this.open=true;},close(){this.open=false;document.activeElement=this.returnFocus;},click(event={detail:1}){if(!this.disabled){this.onclick?.(event);events.get('click')?.(event);}},querySelector(){return this.status;}};
   if(id)nodes.set(id,node);return node;
@@ -54,7 +55,7 @@ async function boot({modern=true,query='?level=1',data,entries={},page='play',un
  const history={state:{source:'existing-history'},replaceState(state,title,url){historyCalls.push({state,title,url});this.state=state;const parsed=new URL(url,'https://typing.example');location.search=parsed.search;location.pathname=parsed.pathname;location.hash=parsed.hash;}};
  const world={update(state,dt){rendered.push({state:engine.snapshot(state),dt});}};
  const worldModules=Object.fromEntries(['Orchard','River','Forest','Pairing','Invitation'].map(name=>[`create${name}World`,()=>{if(rendererFailure)throw Error('WebGL unavailable');return world;}]));
- const context=vm.createContext({createFeedback:()=>({unlock(){},stop(){},pulse(){},play(){}}),taskGuide,...engine,create:fixedSeed===undefined?(modern?currentEngine.create:engine.create):(level,stage=0,seed=fixedSeed)=>currentEngine.create(level,stage,seed),getFinger,STORAGE_KEY:store.STORAGE_KEY,load:()=>store.load(localStorage),save:data=>store.save(data,localStorage),blank:store.blank,recordKeys:(data,keys)=>{recordedKeys.push([...keys]);return store.recordKeys(data,keys);},hasConflict:data=>store.hasConflict(data,localStorage),document,
+ const context=vm.createContext({recordReplay,replayGoal,stampCount,createFeedback:()=>({unlock(){},stop(){},pulse(){},play(){}}),taskGuide,...engine,create:fixedSeed===undefined?(modern?currentEngine.create:engine.create):(level,stage=0,seed=fixedSeed)=>currentEngine.create(level,stage,seed),getFinger,STORAGE_KEY:store.STORAGE_KEY,load:()=>store.load(localStorage),save:data=>store.save(data,localStorage),blank:store.blank,recordKeys:(data,keys)=>{recordedKeys.push([...keys]);return store.recordKeys(data,keys);},hasConflict:data=>store.hasConflict(data,localStorage),document,
   window:{localStorage,addEventListener:(name,fn)=>windowEvents.set(name,fn)},localStorage,location,history,navigator:{},URLSearchParams,performance:{now:()=>now},
   requestAnimationFrame:fn=>{frame=fn;},worldModules,createWorld:()=>world,confirm:message=>{prompts.push(message);return confirmResult;},alert:message=>alerts.push(message),console:{error(){}}});
  const source=read(`${page}.js`).replace(/^import[^\n]+\n/gm,'').replace('const mod=await import(path);','const mod=await Promise.resolve(worldModules);');
@@ -115,7 +116,7 @@ function completeStage(page){
 test('v4 independent HUD hides next key/finger and wrong feedback never reveals the answer',async()=>{
  const state=engine.create(3,1,482),page=await boot({query:'?level=3',data:progress({3:sessionWithMetrics(state)})});page.click('intro-next');page.advance(.1);
  assert.equal(page.state().version,4);assert.equal(page.nodes.get('world').classList.contains('independent-practice'),true);
- assert.equal(page.nodes.get('key-hints').children.length,0);assert.match(page.nodes.get('finger-hint').textContent,/默认关闭/);
+ assert.equal(page.nodes.get('key-hints').children.length,0);assert.match(page.nodes.get('finger-hint').textContent,/挑战：/);
  const target=page.read('state.target'),wrong=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].find(k=>k!==target);page.tap(wrong);
  assert.match(page.nodes.get('message').textContent,new RegExp(`刚才按了 ${wrong}`));assert.doesNotMatch(page.nodes.get('message').textContent,new RegExp(`先找 ${target}|接下来是 ${target}`));
  assert.equal(page.document.querySelector('.hintbar').classList.contains('error'),true);
@@ -183,19 +184,18 @@ test('active room help describes only currently available full shortcodes, inclu
  const zones=plain(page.read('state.codeInput.candidates'));assert.ok(zones.every(c=>c.kind==='zone'));page.click('help');for(const zone of zones)assert.ok(page.nodes.get('help-current-target').textContent.includes(zone.code));
 });
 
-test('new late-level keys are taught in small groups before gameplay credit and are incremental',async()=>{
+test('late-level entry teaches a small group, then new task keys do not interrupt or steal credit',async()=>{
  const page=await boot({query:'?level=12'});page.click('intro-next');assert.equal(page.nodes.get('warmup').open,true);assert.ok(page.read('warmKeys.length')<=3);assert.match(page.nodes.get('warmup-step').textContent,/认识新键 · 1 \/ /);
  while(page.nodes.get('warmup').open)page.tap(page.read('warmKeys[warmIndex]'));
- const choice=page.read('state.choices.find(c=>!c.done).key');page.tap(choice);page.advance(5);assert.equal(page.nodes.get('warmup').open,true);assert.ok(page.read('warmKeys.length')<26);assert.equal(page.read('roundMetrics.choices'),1);assert.equal(page.read('roundMetrics.correct'),0);
- const first=page.read('warmKeys[warmIndex]');page.tap(first);assert.equal(page.read('roundMetrics.correct'),0);page.event('pagehide');const reloaded=await boot({query:'?level=12',entries:Object.fromEntries(page.values)});reloaded.click('intro-next');assert.equal(reloaded.read('roundMetrics.choices'),1);assert.ok(!reloaded.read('warmKeys').includes(first));
+ const choice=page.read('state.choices.find(c=>!c.done).key');page.tap(choice);page.advance(5);assert.equal(page.nodes.get('warmup').open,false);assert.equal(page.read('roundMetrics.choices'),1);assert.equal(page.read('roundMetrics.correct'),0);
+ const first=page.read('state.target');page.tap(first);assert.equal(page.read('roundMetrics.correct'),1);page.event('pagehide');const reloaded=await boot({query:'?level=12',entries:Object.fromEntries(page.values)});reloaded.click('intro-next');assert.equal(reloaded.read('roundMetrics.choices'),1);assert.equal(reloaded.nodes.get('warmup').open,false);assert.equal(reloaded.read('roundMetrics.correct'),1);
 });
 
-test('room pickup introduces newly exposed placement-code keys before any pending gameplay credit',async()=>{
+test('room pickup accepts newly exposed placement-code keys without a teaching popup or lost input',async()=>{
  const state=engine.create(7,1,185),initialKeys=engine.getRequiredKeys(state),page=await boot({query:'?level=7',data:progress({7:sessionWithMetrics(state)},{practiced:[]})});page.click('intro-next');assert.equal(page.nodes.get('warmup').open,true);while(page.nodes.get('warmup').open)page.tap(page.read('warmKeys[warmIndex]'));assert.equal(page.read('roundMetrics.choices'),0);
  const item=page.read('state.codeInput.candidates[0]');for(const key of item.code)page.tap(key);
- assert.equal(page.read('state.action.type'),'pick');assert.equal(page.nodes.get('warmup').open,true);const action=page.state().action,counts=plain(page.read('roundMetrics'));page.advance(5);assert.deepEqual(page.state().action,action);
- const missing=plain(page.read('warmKeys'));assert.ok(missing.length>0);assert.ok(missing.every(key=>!initialKeys.includes(key)));
- while(page.nodes.get('warmup').open)page.tap(page.read('warmKeys[warmIndex]'));assert.deepEqual(plain(page.read('roundMetrics')),counts);
+ assert.equal(page.read('state.action.type'),'pick');assert.equal(page.nodes.get('warmup').open,false);const counts=plain(page.read('roundMetrics'));
+ assert.ok(page.read('getRequiredKeys(state)').some(key=>!initialKeys.includes(key)));
  const zone=page.read('state.codeInput.candidates[0]');for(const key of zone.code)page.tap(key);assert.equal(page.read('state.pendingCode'),zone.code);assert.equal(page.read('roundMetrics.choices'),counts.choices+zone.code.length);
  page.event('pagehide');const resumed=await boot({query:'?level=7',entries:Object.fromEntries(page.values)});resumed.click('intro-next');const queuedCount=resumed.read('roundMetrics.choices');resumed.advance(5);assert.equal(resumed.read('roundMetrics.choices'),queuedCount);
 });

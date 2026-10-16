@@ -1,5 +1,6 @@
 import * as THREE from '../vendor/three.module.js';
 import { createRoomScene } from './pairing-room-scene.js';
+import {screenObjectBounds} from './screen-bounds.js';
 
 // Only this isolated preview uses the new two-stage, freely rearrangeable room.
 // Engine actions are authoritative. No input, storage, timers, or animation loop.
@@ -38,6 +39,8 @@ export function pairingCodeLabel(state={},key) {
   const choice=state.choices?.find(item=>item.key===key);
   const item=state.items?.find(item=>item.key===key),zone=state.zones?.find(item=>item.key===key);
   const held=state.held||state.action?.item;
+  if(state.activityEdition===2&&zone&&!state.held)return {code:'',cursor:0,typed:'',mixed};
+  if(mixed&&zone&&!held)return {code:'',cursor:0,typed:'',mixed};
   const code=String(mixed?(choice?.code||item?.code||(held&&zone?.codesByItem?.[held])||zone?.code||''):key);
   const buffer=String(state.codeBuffer||state.codeInput?.buffer||'');
   const cursor=mixed?Math.max(0,Math.min(code.length,choice?.codeCursor??(buffer&&code.startsWith(buffer)?buffer.length:0))):0;
@@ -207,8 +210,8 @@ export function reconstructPairingContext(state={}) {
 
 // Screen-space labels are packed independently of mesh positions. This keeps
 // every unique key readable even when several movable pieces share one shelf.
-export function layoutPairingLabels(entries,width,height) {
-  const occupied=[],result=[];
+export function layoutPairingLabels(entries,width,height,obstacles=[]) {
+  const occupied=[...obstacles],result=[];
   const ordered=[...entries].sort((a,b)=>Number(b.destination)-Number(a.destination));
   const overlaps=(a,b)=>a.left<b.right+8&&a.right>b.left-8&&a.top<b.bottom+8&&a.bottom>b.top-8;
   for(const entry of ordered) {
@@ -231,20 +234,20 @@ export function layoutPairingLabels(entries,width,height) {
 const CSS=`
 .pairing-label-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:3;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
 .pairing-label-leaders{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
-.pairing-world-label{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;color:#755b35;background:#fff8e7ed;border:1px solid #e9d7b2;border-radius:11px;padding:7px 9px;box-shadow:0 3px 10px #5b422611;font-size:11px;line-height:1.25;transition:opacity .18s,border-color .18s}
+.pairing-world-label{position:absolute;transform:translate(-50%,-100%);white-space:nowrap;color:#755b35;background:#fff8e7ed;border:1px solid #e9d7b2;border-radius:11px;padding:7px 9px;box-shadow:0 3px 10px #5b422611;font-size:14px;line-height:1.3;transition:opacity .18s,border-color .18s}
 .pairing-world-label:after{content:"";position:absolute;bottom:-5px;left:calc(50% - 4px);width:8px;height:8px;background:inherit;border-bottom:inherit;border-right:inherit;transform:rotate(45deg)}
-.pairing-world-label .pairing-tagline{display:block;font-size:9px;letter-spacing:.3px;margin-bottom:4px;color:#9c875d}
+.pairing-world-label .pairing-tagline{display:block;font-size:13px;letter-spacing:0;margin-bottom:4px;color:#69522f}
 .pairing-world-label .pairing-caption{display:flex;gap:7px;align-items:center;font-weight:650}
 .pairing-world-label kbd{font:800 21px/1 Arial,sans-serif;min-width:23px;text-align:center;border:1px solid #cebd91;border-radius:5px;background:#f2e4c2;padding:2px 3px;box-shadow:0 2px 0 #cebd9170;color:#866b38}
-.pairing-world-label kbd.code{font-size:18px;letter-spacing:1px}.pairing-world-label kbd.code .entered{color:#507642;text-decoration:underline;text-underline-offset:3px}.pairing-world-label kbd.code .remaining{color:inherit}
+.pairing-world-label kbd.code{font-size:24px;letter-spacing:1px}.pairing-world-label kbd.code .entered{color:#507642;text-decoration:underline;text-underline-offset:3px}.pairing-world-label kbd.code .remaining{color:inherit}
 .pairing-world-label.destination{background:#f7fae9f2;color:#657850;border-color:#bdca96}
-.pairing-world-label.destination .pairing-tagline{color:#8b986d}
+.pairing-world-label.destination .pairing-tagline{color:#50643d}
 .pairing-world-label.destination kbd{background:#e6edcf;color:#697e45;border-color:#aec287;box-shadow:0 2px 0 #a8ba8270}
 .pairing-world-label.available{border-width:2px;padding:6px 8px}
 .pairing-world-label.quiet{opacity:.85}
 .pairing-world-label.held{background:#fff2cf;border-color:#d5ac63;opacity:1}
-.pairing-world-label .pairing-count{margin-left:3px;font-size:10px;font-weight:550;color:#8b986d}
-@media(max-width:680px){.pairing-world-label{padding:5px 6px;font-size:10px;border-radius:8px}.pairing-world-label.available{padding:4px 5px}.pairing-world-label kbd{font-size:17px;min-width:19px}.pairing-world-label .pairing-caption{gap:4px}.pairing-world-label .pairing-tagline{font-size:8px;margin-bottom:3px}}
+.pairing-world-label .pairing-count{margin-left:3px;font-size:13px;font-weight:600;color:#50643d}
+@media(max-width:680px){.pairing-world-label{padding:5px 6px;font-size:13px;border-radius:8px}.pairing-world-label.available{padding:4px 5px}.pairing-world-label kbd{font-size:17px;min-width:19px}.pairing-world-label .pairing-caption{gap:4px}.pairing-world-label .pairing-tagline{font-size:12px;margin-bottom:3px}}
 `;
 const element=(tag,className='',text)=>{const el=document.createElement(tag);el.className=className;if(text!==undefined)el.textContent=text;return el;};
 
@@ -391,7 +394,7 @@ export function createPairingWorld(container) {
   }
   function arrangeLabels() {
     leaders.setAttribute('viewBox',`0 0 ${width} ${height}`);
-    for(const entry of layoutPairingLabels(labelEntries,width,height)) {
+    for(const entry of layoutPairingLabels(labelEntries,width,height,[screenObjectBounds(bear,camera,width,height)])) {
       const label=labels[entry.key];
       label.el.style.left=`${entry.x}px`;label.el.style.top=`${entry.y}px`;
       const endX=clamp(entry.anchorX,entry.rect.left+7,entry.rect.right-7);
@@ -445,12 +448,12 @@ export function createPairingWorld(container) {
       if(isItem) {
         const item=state.items?.find(item=>item.key===key);
         label.name.textContent=item?.label||PAIRING_ITEMS[key].label;
-        const isHeld=key===held,placed=!!state.placements?.[key];
-        label.el.className=`pairing-world-label item${picking?' available':' quiet'}${isHeld?' held':''}`;
+        const isHeld=key===held,placed=!!state.placements?.[key],checkPlacement=(display.mixed||state.activityEdition)&&!state.freePlay&&item?.goalZone,sorted=checkPlacement&&placed&&state.placements[key]===item.goalZone,misplaced=checkPlacement&&placed&&!sorted;
+        label.el.className=`pairing-world-label item${picking?' available':' quiet'}${isHeld?' held':''}${!isHeld&&sorted?' sorted':!isHeld&&misplaced?' misplaced':''}`;
         const goalZone=state.zones?.find(zone=>zone.key===item?.goalZone);
-        const goalCode=display.mixed?goalZone?.codesByItem?.[key]||goalZone?.code||'':item?.goalZone;
-        const goalHint=state.contentVersion===5&&level===8&&!state.solved?'按上方用途要求，左右都能放':!state.solved&&!state.freePlay&&item?.goalZone?`送到 ${goalZone?.label||PAIRING_ZONES[item.goalZone]?.label||item.goalZone}${goalCode?` (${goalCode})`:''}`:'';
-        label.tagline.textContent=action?.item===key?(action.type==='place'?'正在放下':pose.grip>.98?(goalHint?`拿好啦 · ${goalHint}`:'拿好啦'):'小熊来拿了'):isHeld?(goalHint?`已拿起 · ${goalHint}`:'已拿起 · 选位置'):goalHint|| (placed?'还可以再拿':'↑ 拿取');
+        const goalCode=display.mixed?'':item?.goalZone;
+        const goalHint=state.activityEdition&&state.lessonStageIndex>0?'':state.contentVersion===5&&level===8&&!state.solved?'按上方用途要求，左右都能放':!state.solved&&!state.freePlay&&item?.goalZone?`送到 ${goalZone?.label||PAIRING_ZONES[item.goalZone]?.label||item.goalZone}${goalCode?` (${goalCode})`:''}`:'';
+        label.tagline.textContent=action?.item===key?(action.type==='place'?'正在放下':pose.grip>.98?(goalHint?`拿好啦 · ${goalHint}`:'拿好啦'):'小熊来拿了'):isHeld?(goalHint?`已拿起 · ${goalHint}`:'已拿起 · 选位置'):sorted?'✓ 已放好':misplaced?'! 需调整':state.activityEdition?'○ 未整理'+(goalHint?' · '+goalHint:''):goalHint|| (placed?'还可以再拿':'↑ 拿取');
         label.count.textContent='';
         const p=[...pose.objects[key].position];p[1]+=PAIRING_ITEMS[key].height+.23;
         if(isHeld){p[0]-=.70;p[1]+=.20;p[2]+=.10;}

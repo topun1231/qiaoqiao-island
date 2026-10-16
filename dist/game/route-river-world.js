@@ -51,10 +51,10 @@ export function createRouteRiverWorld(host){
   }
   duck.visible=state.route==='hag'||state.discoveries.includes('水边小鸭');duck.position.y=.2+Math.sin(state.time*2)*.035;
   const title=state.solved||state.stageReady?'到对岸啦！':!state.route?state.routeLeg?'中途小岛 · 可以换路':'按 A 选上路 · 按 H 选下路':state.action?'这组收到了，等小熊站稳':`按完这一串：${path.codes[index]||''}`;
-  setLabel(status,title);
+  setLabel(status,title);status.visible=Boolean(state.route||state.routeLeg||state.stageReady||state.solved);
   const texts=state.choices.map(c=>!state.route?`${c.code==='A'?'A ↑ 上方大石头路':'H ↓ 下方小石头路'}`:`${c.code} · ${c.label}`),newToken=JSON.stringify([texts,state.codeBuffer,Boolean(state.action),state.discoveries]);
   if(optionToken!==newToken){optionToken=newToken;options.replaceChildren();for(const text of texts){const item=document.createElement('span');item.textContent=text;options.append(item);}if(state.codeBuffer){const item=document.createElement('small');item.textContent='已输入 '+state.codeBuffer;options.append(item);}}
-  options.hidden=state.stageReady||state.solved;host.setAttribute('aria-label',`过河 ${state.routeLeg}/2 ${texts.join('；')} 已输入 ${state.codeBuffer}`);
+  options.hidden=!state.route||state.stageReady||state.solved;host.setAttribute('aria-label',`过河 ${state.routeLeg}/2 ${texts.join('；')} 已输入 ${state.codeBuffer}`);
   const width=Math.max(1,host.clientWidth),height=Math.max(1,host.clientHeight),halfWidth=Math.max(7.2,width/height*4.4);
   renderer.setSize(width,height);Object.assign(camera,{left:-halfWidth,right:halfWidth,top:halfWidth*height/width,bottom:-halfWidth*height/width});camera.position.set(0,15,22);camera.lookAt(0,.3,2.4);camera.updateProjectionMatrix();
   props.billboard();island.waterMat.uniforms.time.value+=dt;renderer.render(scene,camera);

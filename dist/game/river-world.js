@@ -121,8 +121,7 @@ function createClassicRiverWorld(container) {
     hag: p.label('h  a  g', [-5.30, 1.0, 5.65], 2.90, .69),
   };
   Object.entries(routeLabels).forEach(([key, label]) => { label.name = `river-route-preview-${key}`; label.userData.route = key; });
-  const sectionBoard = p.label('路线 1 · s  l', [-5.50, 1.28, .05], 2.75, .75);
-  sectionBoard.name = 'river-full-sequence';
+  const sectionBoard = document.createElement('div');sectionBoard.className='river-sequence-hud';container.appendChild(sectionBoard);
   const pointer = p.label('下一块', [0, 1.4, 0], 1.2, .49, root, 'active'); pointer.name = 'river-next-stone';
   // Same destination for both level-4 routes: no forest clue, wrong branch, or hidden rule.
   const picnic = new THREE.Group(); picnic.position.set(6.20, .22, 3.3); picnic.rotation.y = -.12; root.add(picnic);
@@ -136,7 +135,7 @@ function createClassicRiverWorld(container) {
   const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.lineTo(.82, -.08); shape.lineTo(.62, -.42); shape.lineTo(0, -.36); shape.closePath();
   mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({ color: '#d98b53', roughness: 1, side: THREE.DoubleSide }), [0, 1.73, 0], [1,1,1], flag);
   const goalLabel = p.label('到岸边啦', [6.18, .45, 5.2], 2.05, .57); goalLabel.visible = false;
-  for(const sign of [sectionBoard,pointer,goalLabel,...Object.values(routeLabels)]){sign.material.depthTest=false;sign.renderOrder=40;}
+  for(const sign of [pointer,goalLabel,...Object.values(routeLabels)]){sign.material.depthTest=false;sign.renderOrder=40;}
   let disposed = false, width = 0, height = 0;
   function compose() {
     const w = Math.max(1, container.clientWidth), h = Math.max(1, container.clientHeight);
@@ -197,10 +196,9 @@ function createClassicRiverWorld(container) {
       label.position.x = choicePath.start[0] < 0 ? -5.30 : 5.30;
       label.material.opacity = choosing || route === r ? 1 : .45; label.userData.route = r;
     });
-    sectionBoard.visible = level === 3;
+    sectionBoard.hidden = level !== 3;
     if (level === 3) {
-      p.setLabel(sectionBoard, `路线 ${pose.segment + 1} · ${path.sequence.toLowerCase().split('').join(' ')}`);
-      sectionBoard.position.set(path.start[0] > 0 ? 5.55 : -5.5, 1.28, .05);
+      sectionBoard.textContent=`路线 ${pose.segment + 1} · ${path.sequence.split('').join(' ')}`;
     }
     pointer.visible = !independent && !choosing && !pose.complete && !action && index < path.stones.length;
     if (pointer.visible) { const point = path.stones[index]; pointer.position.set(point[0], 1.45, point[1] - .12); pointer.userData.key = path.sequence[index]; }
@@ -213,7 +211,7 @@ function createClassicRiverWorld(container) {
   const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(resize) : null; observer?.observe(container);
   document.fonts?.ready.then(() => { if (!disposed) { p.drawings.forEach(draw => draw()); compose(); } });
   return { update, destroy() {
-    if (disposed) return; disposed = true; globalThis.window?.removeEventListener('resize', resize); observer?.disconnect();
+    if (disposed) return; disposed = true;sectionBoard.remove(); globalThis.window?.removeEventListener('resize', resize); observer?.disconnect();
     island.dispose({ textures: p.textures.values(), materials: p.materials.values(), geometries: p.geometries });
   } };
 }

@@ -1,7 +1,10 @@
 import {activityGuide} from './island-activities.js';
 import {isRoomDesign,roomObjectives} from './playability.js';
 // Explain the controls, without choosing a solution or revealing the next key.
+function forestGuide(s){if(s.stageReady||s.solved)return null;return{title:s.level===5?`目的地：${s.routeGraph.nodes[s.routeGraph.goal].label}`:s.inventory.length<2?'找齐蜂蜜和果汁，先去哪份都可以':'两份带齐了，沿小路去野餐地',controls:s.action?'完整短码已收到，等小熊走到下个路口':'看路口短码，从左到右逐字输入；Backspace 可删末字改选路',next:s.codeBuffer?`已输入 ${s.codeBuffer}，接着打完这一串`:s.level===6?`篮子：${s.inventory.includes('T')?'✓':'○'} 蜂蜜　${s.inventory.includes('Y')?'✓':'○'} 果汁 · 走错自己返回，不自动退回`:'走过的小路留下脚印；走错自己返回，探索不算打错字'};}
+
 export function taskGuide(state) {
+ if(state.routeAdventure===2)return forestGuide(state);
  if(state.activityEdition)return activityGuide(state);
  const done=state.solved||state.phase==='complete';
  if(state.version<4||state.stageReady||done&&state.mode!=='room')return null;

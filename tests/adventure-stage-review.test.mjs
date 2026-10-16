@@ -266,7 +266,7 @@ test('staged invitation text comes from the active task and arrived friends rema
 test('real articulated paws fit every dynamically generated staged river stone, including both alternate routes', async () => {
   const saved = new Map(['document', 'window', 'ResizeObserver', '__stageReviewRenderer', '__stageReviewIsland'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   const context = { beginPath(){}, roundRect(){}, arc(){}, fill(){}, stroke(){}, clearRect(){}, fillText(){}, moveTo(){}, lineTo(){} };
-  globalThis.document = { createElement: () => ({ getContext: () => ({ ...context }) }) };
+  globalThis.document = { createElement: () => ({ remove(){}, getContext: () => ({ ...context }) }) };
   globalThis.window = { addEventListener(){}, removeEventListener(){} };
   globalThis.ResizeObserver = undefined;
   globalThis.__stageReviewRenderer = class {

@@ -6,7 +6,7 @@ const root=new URL('../dist/',import.meta.url);
 const read=name=>readFileSync(new URL(name,root),'utf8');
 
 test('distribution contains only formal modes and all local imports and HTML assets resolve',()=>{
- assert.deepEqual(readdirSync(root,{withFileTypes:true}).filter(p=>p.isDirectory()).map(p=>p.name).sort(),['fruit-challenge','game','vendor']);
+ assert.deepEqual(readdirSync(root,{withFileTypes:true}).filter(p=>p.isDirectory()).map(p=>p.name).sort(),['chase','fruit-challenge','game','vendor']);
  function scan(dir){for(const entry of readdirSync(dir,{withFileTypes:true})){
   const url=new URL(entry.name+(entry.isDirectory()?'/':''),dir);
   if(entry.isDirectory()){scan(url);continue;}

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>敲敲岛 · 警察抓小偷 · 正式版</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css?v=2.5.0"></head>
+<body>
+<header><a href="../game/">← 地图</a><h1>警察抓小偷</h1><small>正式版 · 近距输入</small><div class="stats"><span>距离 <b id="distance">18</b> 米</span><span>连对 <b id="combo">0</b></span></div><button id="sound">声音 开</button><button id="pause">暂停</button></header>
+<main id="world" tabindex="-1" aria-label="小熊警察在林间追赶小偷"><div id="render-error" hidden role="alert">画面加载失败，请刷新重试。<a href="../game/">返回地图</a></div></main>
+<aside class="race-progress" aria-label="小偷的逃跑进度"><span>藏身处还有 <b id="remaining">102</b> 米</span><div><i id="progress"></i></div></aside>
+<p id="moment" aria-live="polite"></p>
+<footer><p id="instruction">从左到右打字，追上前面的小偷</p><div id="letters" aria-label="待输入字母"></div><p id="feedback" role="status">打错不前进，按对当前字母继续 · 不用按空格</p></footer>
+<dialog id="panel" aria-labelledby="panel-title"><p class="eyebrow">敲敲岛 · 追逐挑战</p><h2 id="panel-title" tabindex="-1">追上偷苹果的小偷！</h2><p id="panel-copy">你是小熊警察。照着底部字母连续打字，打得又快又准，就能追近小偷。在它到达藏身处前抓住它！</p>
+<fieldset id="difficulties"><legend>选择难度 · 全部使用 26 个字母</legend><label><input type="radio" name="difficulty" value="easy">入门<small>多一点反应时间</small></label><label><input type="radio" name="difficulty" value="normal" checked>标准<small>连续打字追赶</small></label><label><input type="radio" name="difficulty" value="hard">高手<small>更快的小偷</small></label></fieldset>
+<p id="result" hidden></p><button id="go" class="primary">开始追逐</button><button id="restart" hidden>重新开始</button><p class="soft">用电脑键盘，切到英文输入。字母不分大小写。<br>按错就按对当前字母，不必退格。Esc 暂停。<br>追逐按局游玩，刷新或回地图后重新开始。</p><a href="../game/">回地图</a></dialog>
+<script type="module" src="main.js"></script></body></html>

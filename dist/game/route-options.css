@@ -1,5 +1,5 @@
 .route-options{position:absolute;z-index:8;left:12px;right:12px;bottom:10px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;pointer-events:none}
 .route-options[hidden]{display:none}
-.route-options span,.route-options small{padding:7px 12px;border:1px solid #c8b783;border-radius:13px;background:#fff9e9f5;color:#435d3b;font-size:clamp(12px,1.15vw,16px);font-weight:700;box-shadow:0 2px 7px #40563315}
+.route-options span,.route-options small{padding:7px 12px;border:1px solid #c8b783;border-radius:13px;background:#fff9e9f5;color:#435d3b;font-size:clamp(16px,1.4vw,19px);font-weight:700;box-shadow:0 2px 7px #40563315}
 .route-options small{flex-basis:100%;text-align:center;padding:2px;background:transparent;border:0;box-shadow:none}
 @media(max-width:700px){.route-options{bottom:36px}}

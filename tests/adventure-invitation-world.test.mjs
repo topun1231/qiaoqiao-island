@@ -1,12 +1,24 @@
+import {createActivity} from '../dist/game/island-activities.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import { Box3 } from '../dist/vendor/three.module.js';
 import {create,press,tick,advanceStage} from '../dist/game/engine-v3.js';
-import {sampleInvitationPose,INVITATION_FRIENDS} from '../dist/game/invitation-world.js';
+import {sampleInvitationPose,INVITATION_FRIENDS,invitationWritingHint} from '../dist/game/invitation-world.js';
+import * as Current from '../dist/game/engine.js';
 const near=(a,b,e=1e-8)=>assert(Math.abs(a-b)<e,`${a} differs from ${b}`);
 const vectorNear=(a,b)=>a.forEach((n,i)=>near(n,b[i]));
 const delivery=(key,p,arrived=[])=>({level:12,mode:'mail',stage:'delivery',phase:'acting',selected:key,arrived,action:{type:'deliver',destination:key,elapsed:p*5.2,duration:5.2}});
+
+test('rejected invitation typo preserves correct prefix and asks to retry, not erase',()=>{
+ const state=createActivity(11,0,42,1);Current.press(state,'C');Current.tick(state,100);
+ Current.press(state,'C');Current.press(state,'O');Current.press(state,'Z');
+ assert.equal(state.buffer,'co');assert(state.wrongKey);
+ assert.match(invitationWritingHint(state),/直接重试/);
+ assert.doesNotMatch(invitationWritingHint(state),/Backspace/);
+ Current.press(state,'M');assert.equal(state.buffer,'com');
+ assert.match(invitationWritingHint({...state,buffer:'coz'}),/Backspace/,'legacy editable text must still be corrected');
+});
 
 test('every selectable house has a continuous real bear visit ending at its own door',()=>{
  for(const key of['C','X','Z']){let prev=null;for(let i=0;i<=1000;i++){const pose=sampleInvitationPose({level:12,mode:'mail',stage:'travel',phase:'acting',selected:key,action:{type:'visit',destination:key,elapsed:i/1000*2.1,duration:2.1}});if(prev)assert(Math.hypot(...pose.root.map((v,j)=>v-prev[j]))<.045);prev=pose.root;}vectorNear(prev,INVITATION_FRIENDS[key].stop);}

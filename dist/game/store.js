@@ -1,3 +1,4 @@
+import {cleanReplayRecords} from './replay-goals.js';
 export const STORAGE_KEY='qiaoqiao-island-challenge-test-v1';
 export const BACKUP_KEY='qiaoqiao-island-challenge-test-before-experience-v3';
 // Never reuse the earlier v2 backup: this is the exact pre-challenge record.
@@ -34,7 +35,7 @@ export function validate(value){
    sessions[key]=metrics?{...engineSession,roundMetrics:metrics}:engineSession;
   }
  }
- return {version:1,completed:[...new Set((Array.isArray(value.completed)?value.completed:[]).filter(x=>Number.isInteger(x)&&x>=1&&x<=12))],practiced:[...new Set((Array.isArray(value.practiced)?value.practiced:[]).filter(x=>typeof x==='string'&&(/^[A-Z]$/.test(x)||['Space','Backspace'].includes(x))))],sessions,lastLevel:Number.isInteger(value.lastLevel)&&value.lastLevel>=1&&value.lastLevel<=12?value.lastLevel:null,updated:Number.isFinite(value.updated)&&value.updated>=0?value.updated:0};
+ return {version:1,...(value.replayRecords?{replayRecords:cleanReplayRecords(value.replayRecords)}:{}),completed:[...new Set((Array.isArray(value.completed)?value.completed:[]).filter(x=>Number.isInteger(x)&&x>=1&&x<=12))],practiced:[...new Set((Array.isArray(value.practiced)?value.practiced:[]).filter(x=>typeof x==='string'&&(/^[A-Z]$/.test(x)||['Space','Backspace'].includes(x))))],sessions,lastLevel:Number.isInteger(value.lastLevel)&&value.lastLevel>=1&&value.lastLevel<=12?value.lastLevel:null,updated:Number.isFinite(value.updated)&&value.updated>=0?value.updated:0};
 }
 export function load(storage){
  try{

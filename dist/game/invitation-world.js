@@ -1,6 +1,7 @@
 import * as THREE from '../vendor/three.module.js';
 import { createInvitationRoomScene } from './invitation-room-scene.js';
 import { createInvitationGarden, INVITATION_BEAR_SCALE } from './invitation-garden-scene.js';
+import {screenObjectBounds} from './screen-bounds.js';
 
 // All action poses are a pure function of engine state. No renderer clock,
 // keyboard listener, game mutation, or requestAnimationFrame is owned here.
@@ -12,6 +13,11 @@ const yaw=(a,b)=>Math.atan2(b[0]-a[0],b[2]-a[2]);
 const angleMix=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
 const portion=(p,a,b)=>clamp((p-a)/(b-a));
 const HOME=[-1.6,.075,3.4];
+export function invitationWritingHint(state){
+ if(!String(state.targetText||'').startsWith(state.buffer||''))return '有个末字需要修改：按 Backspace 删掉，再继续';
+ if(state.wrongKey)return '错字没写入，前面保留；直接重试';
+ return state.activityEdition?'␣ 表示空格；错字不会写入，改对后继续':'␣ 表示空格；写错末尾时按 Backspace 修改';
+}
 export const INVITATION_FRIENDS=Object.freeze({
  C:Object.freeze({index:0,label:'小兔',home:[-4.61,.07,.88],stop:[-3.18,.075,1.55],seat:[.08,.08,5.0],route:[[-2.3,.075,2.6]],text:'come and play'}),
  X:Object.freeze({index:1,label:'小熊',home:[4.66,.07,-2.29],stop:[3.68,.075,-1.35],seat:[1.8,.08,5.3],route:[[-2.3,.075,2.6],[1.4,.075,1.4],[3.85,.075,-.6]],text:'join us'}),
@@ -70,7 +76,7 @@ export function sampleInvitationPose(state={}){
  const activity=typeof state.activity==='string'?state.activity:state.activity?.id;
  const history=invitationActivityResults(state),last=history.at(-1);
  let root=last?picnicStop(last.friend):HOME.slice(),rotation=last?yaw(root,INVITATION_FRIENDS[last.friend].seat):.2,stride=0,envelopeVisible=false,hand=0;
- const friends=Object.fromEntries(Object.entries(INVITATION_FRIENDS).map(([key,f])=>[key,{position:guests.has(key)?f.seat.slice():f.home.slice(),yaw:guests.has(key)?Math.PI:0,visible:shared||guests.has(key)||key===selected&&state.stage==='write',stride:0,seated:guests.has(key),arrived:guests.has(key),wave:0}]));
+ const friends=Object.fromEntries(Object.entries(INVITATION_FRIENDS).map(([key,f])=>[key,{position:guests.has(key)?f.seat.slice():f.home.slice(),yaw:guests.has(key)?Math.PI:0,visible:shared||guests.has(key)||key===selected&&['write','compose'].includes(state.stage),stride:0,seated:guests.has(key),arrived:guests.has(key),wave:0}]));
  if(shared) {
   root=HOME.slice();rotation=Math.PI;
   if(active&&action.type==='deliver') {
@@ -83,7 +89,7 @@ export function sampleInvitationPose(state={}){
    }
   }
  } else {
-  if(state.stage==='write'||state.stage==='delivery'){root=spec.stop.slice();rotation=yaw(root,spec.target);}
+  if(['write','compose','delivery'].includes(state.stage)){root=spec.stop.slice();rotation=yaw(root,spec.target);}
   const visitor=spec.visitor;
   if(active&&action.type==='visit'){
    const walk=pathSample(visitor,p,rotation,yaw(spec.stop,spec.target));root=walk.root;rotation=walk.yaw;stride=walk.stride;envelopeVisible=!activity;
@@ -125,9 +131,14 @@ const make=(tag,cls,parent,text)=>{const node=document.createElement(tag);if(cls
 const font='"PingFang SC","Microsoft YaHei",Arial,sans-serif';
 function labelLayer(container){const node=make('div','invitation-scene-labels',container);Object.assign(node.style,{position:'absolute',inset:'0',overflow:'hidden',pointerEvents:'none',zIndex:2,fontFamily:font});return node;}
 function label(parent,css={}){const node=make('div','invitation-scene-label',parent);Object.assign(node.style,{position:'absolute',transform:'translate(-50%,-100%)',color:'#574f35',fontSize:'13px',fontWeight:700,whiteSpace:'nowrap',...css});return node;}
-export function invitationLabelBounds(x,y,labelWidth,labelHeight,width,height) {
+export function invitationLabelBounds(x,y,labelWidth,labelHeight,width,height,obstacles=[]) {
  const w=Math.min(labelWidth,Math.max(1,width-24)),h=Math.min(labelHeight,Math.max(1,height-24));
- return {x:Math.max(w/2+12,Math.min(width-w/2-12,x)),y:Math.max(h+12,Math.min(height-12,y)),width:w,height:h};
+ const place=(x,y)=>({x:Math.max(w/2+12,Math.min(width-w/2-12,x)),y:Math.max(h+12,Math.min(height-12,y)),width:w,height:h});
+ const initial=place(x,y);if(!obstacles.length)return initial;
+ const cost=p=>obstacles.reduce((sum,b)=>sum+Math.max(0,Math.min(p.x+w/2,b.right)-Math.max(p.x-w/2,b.left))*Math.max(0,Math.min(p.y,b.bottom)-Math.max(p.y-h,b.top)),0)*1e7+(p.x-initial.x)**2+(p.y-initial.y)**2;
+ let best=initial,score=cost(best);
+ for(let row=h+12;row<=height-12;row+=12)for(let column=w/2+12;column<=width-w/2-12;column+=12){const p=place(column,row),c=cost(p);if(c<score){best=p;score=c;}}
+ return best;
 }
 function project(node,position,camera,w,h){const v=new THREE.Vector3(...position).project(camera),bounds=invitationLabelBounds((v.x*.5+.5)*w,(-v.y*.5+.5)*h,node.offsetWidth||112,node.offsetHeight||34,w,h);node.style.left=`${bounds.x}px`;node.style.top=`${bounds.y}px`;node.style.maxWidth=`${Math.max(1,w-24)}px`;node.style.boxSizing='border-box';}
 function rounded(ctx,x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
@@ -140,21 +151,22 @@ function createCardWorld(container){
  // than competing with the physical card or repeating a bottom-screen prompt.
  const cardPanel=label(layer,{width:'302px',boxSizing:'border-box',whiteSpace:'normal',background:'#fff9e9',border:'2px solid #d5bd88',borderRadius:'17px',padding:'12px 15px 13px',boxShadow:'0 5px 18px #78604422'});
  cardPanel.classList.add('invitation-editable-card');cardPanel.setAttribute('role','group');cardPanel.setAttribute('aria-label','工作台上的邀请卡放大显示');
- const cardTitle=make('div','invitation-card-number',cardPanel);Object.assign(cardTitle.style,{fontSize:'12px',color:'#83714e',marginBottom:'6px'});
+ const cardTitle=make('div','invitation-card-number',cardPanel);Object.assign(cardTitle.style,{fontSize:'14px',color:'#83714e',marginBottom:'6px'});
  const fullTarget=make('div','invitation-card-target',cardPanel);Object.assign(fullTarget.style,{display:'flex',gap:'10px',alignItems:'baseline',marginBottom:'9px'});
- const fullTargetLabel=make('span','',fullTarget,'完整目标');Object.assign(fullTargetLabel.style,{fontSize:'12px',color:'#827558'});
+ const fullTargetLabel=make('span','',fullTarget,'完整目标');Object.assign(fullTargetLabel.style,{fontSize:'14px',color:'#827558'});
  const fullTargetWord=make('span','invitation-card-target-word',fullTarget);Object.assign(fullTargetWord.style,{fontSize:'26px',fontFamily:'ui-monospace,monospace',fontWeight:800,color:'#456140'});
  const cardLetters=make('div','invitation-card-letters',cardPanel);Object.assign(cardLetters.style,{display:'flex',gap:'3px',alignItems:'center',padding:'7px 0 8px',borderTop:'1px solid #e4d7b5',overflow:'hidden'});
- const cardProtected=make('div','invitation-card-protected',cardPanel);Object.assign(cardProtected.style,{fontSize:'12px',color:'#77705b',lineHeight:'1.4'});
- const cardInstruction=make('div','invitation-card-instruction',cardPanel);Object.assign(cardInstruction.style,{fontSize:'12px',color:'#665735',marginTop:'5px',lineHeight:'1.4'});
+ const cardProtected=make('div','invitation-card-protected',cardPanel);Object.assign(cardProtected.style,{fontSize:'14px',color:'#625b47',lineHeight:'1.4'});
+ const cardInstruction=make('div','invitation-card-instruction',cardPanel);Object.assign(cardInstruction.style,{fontSize:'14px',color:'#665735',marginTop:'5px',lineHeight:'1.4'});
  const pointer=make('div','',cardPanel);Object.assign(pointer.style,{position:'absolute',left:'48%',bottom:'-8px',width:'13px',height:'13px',background:'#fff9e9',borderRight:'2px solid #d5bd88',borderBottom:'2px solid #d5bd88',transform:'rotate(45deg)'});
  let magnifiedKey='';
  function updateMagnifiedCard(state,pose){
+  if(state.activityEdition===3&&state.stage==='choose'){cardPanel.style.display='none';caption.style.display='none';return;}
   cardPanel.style.display=pose.acting||state.phase==='complete'||state.phase==='stage-ready'||state.stageReady?'none':'block';caption.style.display=pose.acting||state.phase==='complete'||state.phase==='stage-ready'||state.stageReady?'block':'none';
   if(pose.acting||state.phase==='complete'||state.phase==='stage-ready'||state.stageReady)return;
   const {target,prefix,buffer,protectedText,instruction}=invitationCardContent(state);
   const signature=[target,prefix,buffer,state.wrongKey,state.target,state.step,state.lessonStageIndex].join('|');
-  if(signature!==magnifiedKey){magnifiedKey=signature;cardTitle.textContent=`第 ${(state.step||0)+1} 张邀请卡 · 工作台上的卡片`;fullTargetWord.textContent=target;cardLetters.replaceChildren();
+  if(signature!==magnifiedKey){magnifiedKey=signature;cardTitle.textContent=`第 ${(state.step||0)+1} 张${state.activityEdition===3?'物品词卡':'邀请卡'} · 工作台上的卡片`;fullTargetWord.textContent=target;cardLetters.replaceChildren();
    const shown=Math.max(target.length,buffer.length),start=Math.max(0,shown-6);
    if(start){const dots=make('span','',cardLetters,'…');Object.assign(dots.style,{fontSize:'20px',color:'#89826f'});}
    for(let i=start;i<shown;i++){
@@ -165,12 +177,12 @@ function createCardWorld(container){
    }
    if(buffer.length>=target.length){const caret=make('span','invitation-card-caret',cardLetters);Object.assign(caret.style,{height:'33px',width:'3px',flex:'0 0 3px',background:'#4f6542',marginLeft:'1px'});}
    cardProtected.textContent=protectedText;
-   cardInstruction.textContent=instruction;
+   cardInstruction.textContent=state.activityEdition===3?'照完整目标输入；Backspace 可以修改末字':instruction;
    if(state.wrongKey&&Number(state.level)===9)cardInstruction.textContent='照着完整目标，从光标的位置继续写';
   }
   const pos=new THREE.Vector3(-.4,2.32,-.15).project(camera),panelWidth=Math.min(302,width-24),px=(pos.x*.5+.5)*width,py=(-pos.y*.5+.5)*height;
   cardPanel.style.width=`${panelWidth}px`;
-  const bounds=invitationLabelBounds(px,py,panelWidth,cardPanel.offsetHeight||210,width,height);
+  const bounds=invitationLabelBounds(px,py,panelWidth,cardPanel.offsetHeight||210,width,height,[screenObjectBounds(bear,camera,width,height)]);
   cardPanel.style.left=`${bounds.x}px`;cardPanel.style.top=`${bounds.y}px`;
  }
  const table=new THREE.Group();table.name='invitation-writing-worktable';scene.add(table);
@@ -202,7 +214,7 @@ function createCardWorld(container){
   const {target,prefix,buffer,protectedText,instruction}=invitationCardContent(state);
   const k=[target,prefix,buffer,state.level,state.phase,pose.stamp>.5,pose.fold>.1,state.wrongKey,state.message].join('|');if(key===k)return;key=k;
   ctx.clearRect(0,0,1280,768);ctx.fillStyle='#fff9e7';rounded(ctx,0,0,1280,768,30);ctx.strokeStyle='#ddbf85';ctx.lineWidth=5;ctx.strokeRect(30,30,1220,708);
-  ctx.textAlign='center';ctx.fillStyle='#8b754a';ctx.font=`700 33px ${font}`;ctx.fillText(Number(state.level)===9?'野餐邀请卡 · 写好短词':'野餐邀请卡 · 修好末尾',640,90);
+  ctx.textAlign='center';ctx.fillStyle='#8b754a';ctx.font=`700 33px ${font}`;ctx.fillText(Number(state.level)===9?(state.activityEdition===3?'物品词卡 · 写完整单词':'野餐邀请卡 · 写好短词'):'野餐邀请卡 · 修好末尾',640,90);
   ctx.font=`500 27px ${font}`;ctx.fillStyle='#766a51';ctx.fillText('完整目标',640,150);
   ctx.font='700 78px ui-monospace, monospace';ctx.fillStyle='#4a6447';ctx.fillText(target,640,232);
   ctx.fillStyle='#e8d8b9';ctx.fillRect(130,263,1020,2);
@@ -279,13 +291,13 @@ function createDeliveryWorld(container){
  const route=dynamic('current-invitation-route'),routeDots=[];for(let i=0;i<39;i++){const dot=ell('#fff2be',[0,.10,0],[.07,.02,.07],route);dot.castShadow=false;routeDots.push(dot);}
  const layer=labelLayer(container),houses=Object.fromEntries(Object.entries(INVITATION_FRIENDS).map(([key,f])=>{const n=label(layer,{background:'#fff7df',border:'1px solid #d2bb89',borderRadius:'13px',padding:'7px 11px',boxShadow:'0 4px 14px #62734218'});n.dataset.recipient=key;n.textContent=`${key} · ${f.label}`;return [key,n];}));
  const party=label(layer,{background:'#fff8df',border:'1px solid #d2bd88',borderRadius:'14px',padding:'7px 11px'});
- const responses=Object.fromEntries(Object.keys(INVITATION_FRIENDS).map(key=>[key,label(layer,{background:'#fff8df',padding:'5px 8px',borderRadius:'11px',fontSize:'11px'})]));
- const panel=label(layer,{whiteSpace:'normal',width:'292px',boxSizing:'border-box',background:'#fff8e4',border:'2px solid #d3b97e',borderRadius:'17px',padding:'12px 14px',boxShadow:'0 6px 20px #53633322'});
+ const responses=Object.fromEntries(Object.keys(INVITATION_FRIENDS).map(key=>[key,label(layer,{background:'#fff8df',padding:'5px 8px',borderRadius:'11px',fontSize:'14px'})]));
+ const panel=label(layer,{whiteSpace:'normal',width:'292px',boxSizing:'border-box',background:'#fff8e4',border:'2px solid #d3b97e',borderRadius:'17px',padding:'8px 14px',boxShadow:'0 6px 20px #53633322'});
  panel.classList.add('invitation-sentence-card');panel.setAttribute('role','group');panel.setAttribute('aria-label','朋友家门前的邀请卡');
- const title=make('div','invitation-panel-title',panel);Object.assign(title.style,{fontSize:'12px',color:'#8a7959',marginBottom:'6px'});
- const target=make('div','invitation-complete-target',panel);Object.assign(target.style,{fontSize:'22px',fontWeight:800,fontFamily:'ui-monospace,monospace',letterSpacing:'.5px',color:'#4b6141',marginBottom:'7px',whiteSpace:'pre-wrap'});
- const typed=make('div','invitation-typed-sentence',panel);Object.assign(typed.style,{display:'flex',alignItems:'center',minHeight:'32px',fontSize:'21px',fontFamily:'ui-monospace,monospace',fontWeight:800,padding:'4px 0',borderTop:'1px solid #e6d9b8',flexWrap:'wrap'});
- const hint=make('div','invitation-card-hint',panel);Object.assign(hint.style,{fontSize:'11px',color:'#8a7856',marginTop:'6px',lineHeight:'1.45'});
+ const title=make('div','invitation-panel-title',panel);Object.assign(title.style,{fontSize:'14px',color:'#8a7959',marginBottom:'3px'});
+ const target=make('div','invitation-complete-target',panel);Object.assign(target.style,{fontSize:'26px',fontWeight:800,fontFamily:'ui-monospace,monospace',letterSpacing:'.5px',color:'#4b6141',marginBottom:'4px',whiteSpace:'pre-wrap'});
+ const typed=make('div','invitation-typed-sentence',panel);Object.assign(typed.style,{display:'flex',alignItems:'center',minHeight:'32px',fontSize:'24px',fontFamily:'ui-monospace,monospace',fontWeight:800,padding:'2px 0',borderTop:'1px solid #e6d9b8',flexWrap:'wrap'});
+ const hint=make('div','invitation-card-hint',panel);Object.assign(hint.style,{fontSize:'14px',color:'#665333',marginTop:'6px',lineHeight:'1.45'});
  const legRest=legs.map(l=>l.position.clone()),legParts=legs.map(l=>l.children.map(c=>({position:c.position.clone(),scale:c.scale.clone()})));
  let width=1,height=1,last=null,disposed=false,labelKey='',cameraMode='';
  function updatePanel(state,pose){
@@ -307,13 +319,12 @@ function createDeliveryWorld(container){
    }
    const cursor=make('span','invitation-caret',typed,'│');Object.assign(cursor.style,{color:'#556944',order:'0',width:'3px',marginLeft:'-3px'});
    if(buffer.length<typed.children.length-1)typed.insertBefore(cursor,typed.children[buffer.length]);
-   hint.textContent=delivery?(pose.shared?(state.action.partOnly?'把这一行留在同一张邀请卡上':'邀请写全了，三位朋友沿小路来野餐'):pose.activity?'小熊和朋友一起完成刚才写下的活动':spec.atPicnic?'小熊把卡片递给野餐垫旁的朋友':'小熊正在递出卡片，朋友会走到野餐垫旁'):'␣ 表示空格；写错末尾时按 Backspace 修改';
-   if(state.wrongKey)hint.textContent=state.version>=4&&state.lessonStageIndex>0&&!state.hintRequested?'对照完整目标，检查刚才输入的末尾':'有个末字需要修改：按 Backspace 删掉，再继续';
+   hint.textContent=delivery?(pose.shared?(state.action.partOnly?'把这一行留在同一张邀请卡上':'邀请写全了，三位朋友沿小路来野餐'):pose.activity?'小熊和朋友一起完成刚才写下的活动':spec.atPicnic?'小熊把卡片递给野餐垫旁的朋友':'小熊正在递出卡片，朋友会走到野餐垫旁'):invitationWritingHint(state);
   }
   // The back cottage is above the walking lane: put its letter to the right
   // in open garden space, so neither the bear nor the friend is underneath it.
   const anchor=pose.shared?[-1.6,3.1,2.12]:spec.atPicnic?[1.45,3.2,3.6]:pose.selected==='Z'?[1.3,1.4,-4.8]:[spec.home[0],2.0,spec.home[2]],v=new THREE.Vector3(...anchor).project(camera),panelWidth=Math.min(304,width-24);
-  const bounds=invitationLabelBounds((v.x*.5+.5)*width,(-v.y*.5+.5)*height,panelWidth,panel.offsetHeight||168,width,height);
+  const bounds=invitationLabelBounds((v.x*.5+.5)*width,(-v.y*.5+.5)*height,panelWidth,panel.offsetHeight||168,width,height,[bear,...recipients.filter(r=>r.g.visible).map(r=>r.g)].map(o=>screenObjectBounds(o,camera,width,height)));
   panel.style.width=`${panelWidth}px`;panel.style.left=`${bounds.x}px`;panel.style.top=`${bounds.y}px`;
 
  }
@@ -327,12 +338,12 @@ function createDeliveryWorld(container){
    const r=recipients[f.index],p=pose.friends[key];r.g.visible=p.visible;r.g.position.set(...p.position);r.g.rotation.y=p.yaw;r.g.scale.setScalar(p.seated?.59:.65);r.paw.rotation.z=(p.seated?-.6:-.2)+(p.wave||0)*.7;
    r.feet.forEach((foot,i)=>{foot.position.z=.03+p.stride*(i?-.10:.10);foot.position.y=.12+Math.max(0,p.stride*(i?-1:1))*.07;});
    const atPicnic=guests.has(key),choice=pose.activity&&state.stage==='select'&&!state.stageReady&&state.phase!=='complete';
-   houses[key].style.display=available.has(key)&&(!pose.activity||choice)?'block':'none';
+   houses[key].style.display=available.has(key)&&(!pose.activity||choice)&&!(['write','compose'].includes(state.stage)&&key===pose.selected)?'block':'none';
    const activities=pose.activity==='play'?{C:'滚球',X:'搭积木',Z:'放风筝'}:pose.activity==='share'?{C:'分梨子',X:'倒果汁',Z:'分蛋糕'}:{C:'问候小兔',X:'问候小熊',Z:'问候小鹿'};
-   houses[key].textContent=choice?`${key} · ${activities[key]}`:atPicnic?`${f.label}已到`:pose.shared?`${f.label}的家`:arrived.has(key)?`✓ ${f.label}`:`${key} · ${f.label}`;
+   houses[key].textContent=choice?`${key} · ${activities[key]}`:atPicnic?`${f.label}已到`:pose.shared?`${f.label}的家`:arrived.has(key)?`✓ ${f.label}`:state.activityEdition===3&&state.stage!=='select'?`${f.label}的家`:`${state.activityEdition===3?state.choices.find(c=>c.key===key)?.code||'':key} · ${f.label}`;
    Object.assign(houses[key].style,{background:arrived.has(key)?'#e1e9bb':key===pose.selected&&state.stage!=='select'?'#fff0bb':'#fff7df',opacity:'1'});
    project(houses[key],atPicnic?[f.seat[0],1.4,f.seat[2]]:[f.home[0],1.07,f.home[2]],camera,width,height);
-   if(choice&&width<560){houses[key].style.left=`${width*(f.index+1)/4}px`;houses[key].style.top=`${height-50}px`;houses[key].style.padding='6px 7px';houses[key].style.fontSize='11px';}
+   if(choice&&width<560){houses[key].style.left=`${width*(f.index+1)/4}px`;houses[key].style.top=`${height-50}px`;houses[key].style.padding='6px 7px';houses[key].style.fontSize='14px';}
    responses[key].style.display=pose.activity&&!choice?'block':p.seated&&!available.has(key)?'block':'none';
    responses[key].textContent=pose.activity?(key===pose.selected&&pose.acting&&state.action?.type==='deliver'?pose.activity==='greet'?'你好呀！':pose.activity==='play'?'一起玩！':'谢谢分享！':f.label):`${f.label}已到`;
    project(responses[key],[p.position[0],1.2,p.position[2]],camera,width,height);

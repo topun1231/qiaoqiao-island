@@ -1,3 +1,4 @@
+import {recordReplay,replayGoal,stampCount} from '../dist/game/replay-goals.js';
 import {nextActivityKey} from './activity-driver.mjs';
 import {roomObjectives,isRoomDesign} from '../dist/game/playability.js';
 import {taskGuide} from '../dist/game/task-guide.js';
@@ -7,7 +8,26 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import * as currentEngine from '../dist/game/engine.js';
 import * as classicEngine from '../dist/game/engine-classic.js';
+import {createActivity} from '../dist/game/island-activities.js';
+import {createRoute as createLegacyRoute} from '../dist/game/route-adventure.js';
 const engine=currentEngine;
+test('map keeps earned stamps visible while an unfinished replay can be continued',async()=>{
+ const state=engine.create(6,0,32),data=progress({6:engine.snapshot(state)},{completed:[6],replayRecords:{6:{bestWrong:1,bestHelp:0}}});
+ const p=await boot({page:'map',data});
+ assert.match(p.stages[5].status.innerHTML,/继续 1\/3/);
+ assert.match(p.stages[5].status.innerHTML,/印章 1\/2/);
+ assert.equal(p.writes.length,0,'viewing the map must not rewrite progress or records');
+});
+test('existing maze and route saves continue unchanged; explicit upgrade reloads the approved forest',async()=>{
+ for(const level of [5,6])for(const old of [createActivity(level,1,73),...(level===5?[createLegacyRoute(5,1,73)]:[])]){
+  const saved=engine.snapshot(old),other=engine.snapshot(engine.create(8,1,19));
+  const p=await boot({query:`?level=${level}`,data:progress({[level]:saved,8:other},{completed:[1,2,3]})});
+  assert.deepEqual(engine.snapshot(p.state()),saved);assert.equal(p.nodes.get('upgrade-round').hidden,false);
+  p.click('upgrade-round');assert.equal(p.reloads(),1);
+  const data=JSON.parse(p.values.get(store.STORAGE_KEY)),fresh=engine.restore(data.sessions[level]);
+  assert.equal(fresh.routeAdventure,2);assert.equal(fresh.lessonStageIndex,0);assert.deepEqual(data.completed,[1,2,3]);assert.deepEqual(engine.snapshot(engine.restore(data.sessions[8])),other);
+ }
+});
 test('restarting an older activity saves the new round then reloads its matching renderer',async()=>{
  for(const level of [5,6,8,11,12])for(const button of ['upgrade-round','restart','replay']){
   const old=classicEngine.snapshot(classicEngine.create(level,0,12));
@@ -15,7 +35,7 @@ test('restarting an older activity saves the new round then reloads its matching
   if(button==='restart'){p.click('intro-next');p.click('pause');}
   if(button==='replay')p.read("state.solved=true;state.phase='complete';showCheckpoint()");
   p.click(button);assert.equal(p.reloads(),1,`${level}/${button}`);
-  const saved=JSON.parse(p.values.get(store.STORAGE_KEY));assert.equal(saved.sessions[level].state.activityEdition,1);assert.ok(saved.completed.includes(1));
+  const saved=JSON.parse(p.values.get(store.STORAGE_KEY));assert.equal(saved.sessions[level].state[[5,6].includes(level)?"routeAdventure":"activityEdition"],[5,6,8,12].includes(level)?2:3);assert.ok(saved.completed.includes(1));
  }
 });
 import * as store from '../dist/game/store.js';
@@ -26,6 +46,25 @@ const plain=value=>JSON.parse(JSON.stringify(value));
 const mastered=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ','Space','Backspace'];
 const progress=(sessions={},extra={})=>({...store.blank(),practiced:[...mastered],sessions,...extra});
 
+test('new activity editions preserve partial codes, metrics and teaching state across refresh',async()=>{
+ for(const level of [8,12]){
+  const p=await boot({query:`?level=${level}`,data:progress({}, {practiced:[]}),fixedSeed:91});p.click('intro-next');
+  assert.ok(p.read('warmKeys.length')<=3);while(p.nodes.get('warmup').open)p.tap(p.read('warmKeys[warmIndex]'));
+  const code=p.state().choices[0].code;p.tap(code[0]);assert.equal(p.state().codeBuffer,code[0]);assert.equal(p.read('roundMetrics.choices'),1);
+  p.tap(code[1]=== 'Z'?'X':'Z');assert.equal(p.read('roundMetrics.wrong'),1);p.tap('Backspace');assert.equal(p.read('roundMetrics.backspace'),1);p.tap(code[0]);
+  p.event('pagehide');const q=await boot({query:`?level=${level}`,entries:Object.fromEntries(p.values)});q.click('intro-next');assert.equal(q.nodes.get('warmup').open,false);assert.equal(q.state().codeBuffer,code[0]);
+  for(const key of code.slice(1))q.tap(key);q.advance(2);assert.equal(q.nodes.get('warmup').open,false);assert.equal(q.read('roundMetrics.wrong'),1);assert.equal(q.read('roundMetrics.backspace'),1);assert.equal(q.read('roundMetrics.choices'),code.length+1);
+ }
+});
+
+test('edition 1 room and picnic saves continue unchanged and offer an explicit mixed-code replay',async()=>{
+ for(const level of [8,12]){
+  const old=createActivity(level,1,73,1);engine.press(old,nextActivityKey(old));engine.tick(old,.1);const saved=engine.snapshot(old);
+  const p=await boot({query:`?level=${level}`,data:progress({[level]:saved},{completed:[1,2,level]})});assert.deepEqual(engine.snapshot(p.state()),saved);assert.equal(p.nodes.get('upgrade-round').hidden,false);
+  p.click('upgrade-round');assert.equal(p.reloads(),1);const data=store.load(p.localStorage);assert.equal(data.sessions[level].state.activityEdition,2);assert.deepEqual(data.completed,[1,2,level]);
+ }
+});
+
 const eventKey=token=>({key:token==='Space'?' ':token.length>1?token:token.toLowerCase(),code:token.length===1?`Key${token}`:token});
 
 async function boot({modern=true,query='?level=1',data,entries={},page='play',unavailable=false,confirmResult=true,rendererFailure=false,fixedSeed,pathname='/game/play.html',hash=''}={}){
@@ -35,9 +74,9 @@ async function boot({modern=true,query='?level=1',data,entries={},page='play',un
  const document={hidden:false,activeElement:null,getElementById:id=>nodes.get(id),createElement:tag=>element(tag),addEventListener:(name,fn)=>documentEvents.set(name,fn)};
  function element(tag,id=''){
   const classes=new Set(),events=new Map();
-  const node={tagName:tag.toUpperCase(),id,hidden:false,disabled:false,open:false,children:[],textContent:'',_html:'',get innerHTML(){return this._html;},set innerHTML(value){this._html=value;this.children=[];},style:{},attributes:{},events,
+  const node={dataset:{},tagName:tag.toUpperCase(),id,hidden:false,disabled:false,open:false,children:[],textContent:'',_html:'',get innerHTML(){return this._html;},set innerHTML(value){this._html=value;this.children=[];},style:{},attributes:{},events,
    classList:{toggle(name,on){on??=!classes.has(name);on?classes.add(name):classes.delete(name);return on;},contains:name=>classes.has(name)},
-   append(...children){this.children.push(...children);},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},
+   replaceChildren(...children){this.children=children;},append(...children){this.children.push(...children);},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},
    addEventListener:(name,fn)=>events.set(name,fn),focus(){document.activeElement=this;},
    showModal(){this.returnFocus=document.activeElement;this.open=true;},close(){this.open=false;document.activeElement=this.returnFocus;},click(event={detail:1}){if(!this.disabled){this.onclick?.(event);events.get('click')?.(event);}},querySelector(){return this.status;}};
   if(id)nodes.set(id,node);return node;
@@ -55,7 +94,7 @@ async function boot({modern=true,query='?level=1',data,entries={},page='play',un
  const world={update(state,dt){rendered.push({state:engine.snapshot(state),dt});}};
  const worldModules=Object.fromEntries(['Orchard','River','Forest','Pairing','Invitation','Activity'].map(name=>[`create${name}World`,()=>{if(rendererFailure)throw Error('WebGL unavailable');return world;}]));
  const feedbackEvents=[];
- const context=vm.createContext({createFeedback:()=>({unlock(){},stop(){},pulse(){},play:kind=>feedbackEvents.push(kind||'hit')}),taskGuide,...engine,create:fixedSeed===undefined?(modern?currentEngine.create:engine.create):(level,stage=0,seed=fixedSeed)=>currentEngine.create(level,stage,seed),getFinger,STORAGE_KEY:store.STORAGE_KEY,load:()=>store.load(localStorage),save:data=>store.save(data,localStorage),blank:store.blank,recordKeys:(data,keys)=>{recordedKeys.push([...keys]);return store.recordKeys(data,keys);},hasConflict:data=>store.hasConflict(data,localStorage),document,
+ const context=vm.createContext({recordReplay,replayGoal,stampCount,createFeedback:()=>({unlock(){},stop(){},pulse(){},play:kind=>feedbackEvents.push(kind||'hit')}),taskGuide,...engine,create:fixedSeed===undefined?(modern?currentEngine.create:engine.create):(level,stage=0,seed=fixedSeed)=>currentEngine.create(level,stage,seed),getFinger,STORAGE_KEY:store.STORAGE_KEY,load:()=>store.load(localStorage),save:data=>store.save(data,localStorage),blank:store.blank,recordKeys:(data,keys)=>{recordedKeys.push([...keys]);return store.recordKeys(data,keys);},hasConflict:data=>store.hasConflict(data,localStorage),document,
   window:{localStorage,addEventListener:(name,fn)=>windowEvents.set(name,fn)},localStorage,location,history,navigator:{},URLSearchParams,performance:{now:()=>now},
   requestAnimationFrame:fn=>{frame=fn;},worldModules,createWorld:()=>world,confirm:message=>{prompts.push(message);return confirmResult;},alert:message=>alerts.push(message),console:{error(){}}});
  const source=read(`${page}.js`).replace(/^import[^\n]+\n/gm,'').replace('const mod=await import(path);','const mod=await Promise.resolve(worldModules);');
@@ -91,8 +130,8 @@ function nextTaskKey(state){
   const choice=state.choices.find(c=>c.key===key);return choice.code[state.codeBuffer.length];
  }
 
- if(state.routeAdventure&&state.level===5){
-  const graph=state.routeGraph,distances={[graph.goal]:0};
+ if(state.routeAdventure&&(state.level===5||state.routeAdventure===2)){
+  const graph=state.routeGraph,goal=state.level===6?(state.inventory.includes('T')?(state.inventory.includes('Y')?'friend':'y-end'):'t-end'):graph.goal,distances={[goal]:0};
   for(let n=0;n<10;n++)for(const edge of graph.edges){if(distances[edge.to]!==undefined)distances[edge.from]=Math.min(distances[edge.from]??99,distances[edge.to]+1);if(distances[edge.from]!==undefined)distances[edge.to]=Math.min(distances[edge.to]??99,distances[edge.from]+1);}
   const choice=[...state.choices].sort((a,b)=>distances[a.nodeTo]-distances[b.nodeTo])[0];return choice.code[state.codeBuffer.length];
  }
@@ -140,6 +179,8 @@ for(let level=1;level<=12;level++)test(`formal level ${level}: all three stages 
   if(stage<2){assert.ok(p.nodes.get('stage-finished').open);p.click('continue-stage');}
  }
  assert.ok(p.nodes.get('finished').open);assert.ok(store.load(p.localStorage).completed.includes(level));
+ assert.deepEqual(store.load(p.localStorage).replayRecords[level],{bestWrong:0,bestHelp:0});
+ assert.match(p.nodes.get('finish-goals').textContent,/2\/2 印章/);
  assert.match(p.nodes.get('finish-evaluation').textContent,/第 3 段未求助完成/);
 });
 
@@ -171,9 +212,9 @@ test('formal context recovery preserves underlying intro/help and cannot unlock 
  assert.ok(p.nodes.get('resume').disabled);p.click('resume');assert.equal(p.read('state.paused'),true);
 });
 
-test('level 9 instructions describe rejected wrong letters; Backspace instructions begin at level 10',()=>{
+test('legacy level 9 instructions describe rejected wrong letters; Backspace instructions begin at level 10',()=>{
  for(const stage of [0,1,2]){
-  const s=engine.create(9,stage,314),guide=taskGuide(s),before=s.buffer;
+  const s=classicEngine.create(9,stage,314),guide=taskGuide(s),before=s.buffer;
   assert.doesNotMatch(guide.controls,/Backspace|退格/);assert.match(guide.controls,/按错可以直接重试/);
   engine.press(s,s.target==='Z'?'A':'Z');assert.equal(s.buffer,before);
   assert.match(taskGuide(engine.create(10,stage,314)).controls,/Backspace/);
