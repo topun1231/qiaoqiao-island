@@ -11,6 +11,23 @@ import * as classicEngine from '../dist/game/engine-classic.js';
 import {createActivity} from '../dist/game/island-activities.js';
 import {createRoute as createLegacyRoute} from '../dist/game/route-adventure.js';
 const engine=currentEngine;
+
+test('all map stages have native links even when map scripts fail to load',()=>{
+ const links=[...read('index.html').matchAll(/<a\b[^>]*class="stage(?: next-step)?"[^>]*href="([^"]+)"[^>]*>/g)];
+ assert.deepEqual(links.map(match=>match[1]),Array.from({length:12},(_,i)=>`play.html?level=${i+1}`));
+});
+
+test('map links retain replay and resume destinations without intercepting native clicks',async()=>{
+ const state=engine.create(6,0,32);
+ const p=await boot({page:'map',data:progress({6:engine.snapshot(state)},{completed:[2,6]})});
+ assert.equal(p.stages[0].href,'play.html?level=1');
+ assert.equal(p.stages[1].href,'play.html?level=2&replay=1');
+ assert.equal(p.stages[5].href,'play.html?level=6');
+ assert.ok(p.stages.every(stage=>!stage.events.has('click')));
+ const restricted=await boot({page:'map',unavailable:true});
+ assert.equal(restricted.stages[11].href,'play.html?level=12');
+ assert.equal(p.writes.length,0);
+});
 test('map keeps earned stamps visible while an unfinished replay can be continued',async()=>{
  const state=engine.create(6,0,32),data=progress({6:engine.snapshot(state)},{completed:[6],replayRecords:{6:{bestWrong:1,bestHelp:0}}});
  const p=await boot({page:'map',data});
@@ -78,14 +95,14 @@ async function boot({modern=true,query='?level=1',data,entries={},page='play',un
    classList:{toggle(name,on){on??=!classes.has(name);on?classes.add(name):classes.delete(name);return on;},contains:name=>classes.has(name)},
    replaceChildren(...children){this.children=children;},append(...children){this.children.push(...children);},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},
    addEventListener:(name,fn)=>events.set(name,fn),focus(){document.activeElement=this;},
-   showModal(){this.returnFocus=document.activeElement;this.open=true;},close(){this.open=false;document.activeElement=this.returnFocus;},click(event={detail:1}){if(!this.disabled){this.onclick?.(event);events.get('click')?.(event);}},querySelector(){return this.status;}};
+   showModal(){this.returnFocus=document.activeElement;this.open=true;},close(){this.open=false;document.activeElement=this.returnFocus;},click(event={detail:1}){if(!this.disabled){this.onclick?.(event);events.get('click')?.(event);if(this.tagName==='A'&&this.href&&!event.defaultPrevented)location.href=this.href;}},querySelector(){return this.status;}};
   if(id)nodes.set(id,node);return node;
  }
  for(const [,tag,id]of read(`${page==='play'?'play':'index'}.html`).matchAll(/<([a-z][a-z0-9]*)\b[^>]*?\bid="([^"]+)"/gi))element(tag,id);
  document.body=element('body');
  nodes.get('world').status=element('canvas');
  const dialogs=[...nodes.values()].filter(node=>node.tagName==='DIALOG'),hintbar=element('footer');
- const stages=Array.from({length:12},()=>{const node=element('section');node.status=element('span');return node;}),counts=[element('strong'),element('strong')],tracks=[element('i'),element('i')],journey=element('section'),entry=element('section');
+ const stages=Array.from({length:12},()=>{const node=element('a');node.status=element('span');return node;}),counts=[element('strong'),element('strong')],tracks=[element('i'),element('i')],journey=element('section'),entry=element('section');
  document.querySelector=selector=>selector==='.hintbar'?hintbar:selector==='.journey-progress'?journey:selector==='.free-practice'?entry:selector.startsWith('#')?nodes.get(selector.slice(1)):null;
  document.querySelectorAll=selector=>selector==='dialog'?dialogs:selector==='.stage'?stages:selector==='.journey-progress strong'?counts:selector==='.progress-track i'?tracks:[];
  const localStorage={getItem(key){if(unavailable)throw Error('SecurityError');return values.get(key)??null;},setItem(key,value){if(unavailable||writeFailure)throw Error('SecurityError');values.set(key,value);writes.push({key,value:JSON.parse(value)});}};

@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>敲敲岛 · 小熊的键盘冒险</title></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>敲敲岛 · 小熊的键盘冒险</title><script defer src="./local-lifecycle.js"></script></head>
 <body><p>正在打开敲敲岛…</p><p><a href="./game/">进入正式版</a></p>
 <script>
 (async()=>{
+ if(location.protocol==='file:')return;
  // Retire old page caches without changing player saves.
  try{if('serviceWorker' in navigator){for(const registration of await navigator.serviceWorker.getRegistrations()){
   const path=new URL(registration.scope).pathname;

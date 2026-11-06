@@ -15,11 +15,11 @@ resumeLink.href=`play.html?level=${next}${!ongoing&&data.completed.includes(next
 const stages=[...document.querySelectorAll('.stage')];
 stages.forEach((stage,i)=>{
  const id=i+1,session=restore(data.sessions[id]),canResume=session?.level===id&&session.phase!=='complete',done=data.completed.includes(id);
- stage.tabIndex=0;stage.role='link';stage.classList.toggle('completed',done);
+ stage.classList.toggle('completed',done);
  stage.querySelector('.stage-status').innerHTML=(canResume?`继续 ${(session.lessonStageIndex||0)+1}/3`:done?'✓ 已完成':'')+(done?` · 印章 ${stampCount(data.replayRecords?.[id])}/2`:'');
  stage.setAttribute('title',data.replayRecords?.[id]?`挑战：全关不求助 / 全关零错按；最佳错按 ${data.replayRecords[id].bestWrong}，最佳求助 ${data.replayRecords[id].bestHelp}`:'完成三段可得挑战印章：全关不求助、全关零错按');
- const go=()=>location.href=`play.html?level=${id}${done&&!canResume?'&replay=1':''}`;
- stage.addEventListener('click',go);stage.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();if(!e.repeat)go();}});
+ stage.href=`play.html?level=${id}${done&&!canResume?'&replay=1':''}`;
+ stage.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();if(!e.repeat)stage.click();}});
 });
 const counts=[data.completed.length,data.practiced.filter(k=>/^[A-Z]$/.test(k)).length];
 document.querySelectorAll('.journey-progress strong').forEach((node,i)=>node.innerHTML=`${counts[i]} <small>/ ${i?26:12}</small>`);

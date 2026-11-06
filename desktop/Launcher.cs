@@ -13,6 +13,12 @@ internal static class Launcher
     const string Identity = "qiaoqiao-local-1";
     static HttpListener listener;
     static string root;
+    static readonly object lifetimeGate = new object();
+    static readonly Stopwatch idle = Stopwatch.StartNew();
+    static int openPages;
+    static int idleSeconds = 120;
+    static bool trackingStarted;
+    static bool automaticExit = true;
 
     [STAThread]
     static void Main()
@@ -45,6 +51,7 @@ internal static class Launcher
                 listener.BeginGetContext(Receive, null);
                 using (var tray = new NotifyIcon())
                 using (var menu = new ContextMenuStrip())
+                using (var exitTimer = new System.Windows.Forms.Timer())
                 {
                     menu.Items.Add("打开敲敲岛", null, (s, e) => OpenGame());
                     menu.Items.Add("退出敲敲岛", null, (s, e) => Application.Exit());
@@ -53,6 +60,12 @@ internal static class Launcher
                     tray.ContextMenuStrip = menu;
                     tray.DoubleClick += (s, e) => OpenGame();
                     tray.Visible = true;
+                    exitTimer.Interval = 1000;
+                    exitTimer.Tick += (s, e) => {
+                        lock (lifetimeGate)
+                            if (automaticExit && trackingStarted && openPages == 0 && idle.Elapsed.TotalSeconds >= idleSeconds) Application.Exit();
+                    };
+                    exitTimer.Start();
                     OpenGame();
                     Application.Run();
                     tray.Visible = false;
@@ -91,6 +104,7 @@ internal static class Launcher
 
     static void OpenGame()
     {
+        lock (lifetimeGate) { idle.Restart(); idleSeconds = 120; }
         try { Process.Start(new ProcessStartInfo(Address) { UseShellExecute = true }); }
         catch (Exception)
         {
@@ -108,6 +122,10 @@ internal static class Launcher
         }
         catch (HttpListenerException) { return; }
         catch (ObjectDisposedException) { return; }
+        if (context.Request.Url.AbsolutePath == "/__qiaoqiao_local__/live")
+        {
+            KeepPageOpen(context); return;
+        }
         try { Serve(context); }
         catch (Exception)
         {
@@ -116,12 +134,53 @@ internal static class Launcher
         finally { try { context.Response.Close(); } catch { } }
     }
 
+    // The response stays open in background tabs; no idle-input timer can end a paused game.
+    static void KeepPageOpen(HttpListenerContext context)
+    {
+        bool counted = false;
+        try
+        {
+            if (!IPAddress.IsLoopback(context.Request.RemoteEndPoint.Address) ||
+                context.Request.HttpMethod != "GET" ||
+                context.Request.Headers["X-Qiaoqiao-Page"] != "1")
+            { context.Response.StatusCode = 403; return; }
+            lock (lifetimeGate)
+            {
+                // Leave browser HTTP connections available for game assets, even with many tabs.
+                if (openPages >= 4) { automaticExit = false; context.Response.StatusCode = 204; return; }
+                openPages++; counted = true; trackingStarted = true; idleSeconds = 15;
+            }
+            var response = context.Response;
+            response.ContentType = "application/octet-stream";
+            response.Headers["Cache-Control"] = "no-store";
+            response.SendChunked = true;
+            var pulse = new byte[] { 10 };
+            while (listener.IsListening)
+            {
+                response.OutputStream.Write(pulse, 0, pulse.Length);
+                response.OutputStream.Flush();
+                Thread.Sleep(2000);
+            }
+        }
+        // A closed page or unsupported streaming must never crash the game server.
+        catch (HttpListenerException) { }
+        catch (IOException) { }
+        catch (ObjectDisposedException) { }
+        catch (Exception) { lock (lifetimeGate) automaticExit = false; }
+        finally
+        {
+            if (counted) lock (lifetimeGate) { openPages--; if (openPages == 0) idle.Restart(); }
+            try { context.Response.Close(); } catch { }
+        }
+    }
+
     static void Serve(HttpListenerContext context)
     {
         var response = context.Response;
         if (!IPAddress.IsLoopback(context.Request.RemoteEndPoint.Address)) { response.StatusCode = 403; return; }
         response.Headers["Cache-Control"] = "no-store";
         response.Headers["X-Content-Type-Options"] = "nosniff";
+        response.Headers["X-Qiaoqiao-Lifecycle"] = "stream-v1";
         string method = context.Request.HttpMethod;
         if (method != "GET" && method != "HEAD")
         {
